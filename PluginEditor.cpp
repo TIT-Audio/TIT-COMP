@@ -95,6 +95,8 @@ TitCompEditor::TitCompEditor (TitCompProcessor& p) : AudioProcessorEditor (&p), 
     osBox.addItemList (juce::StringArray { "OS: Off", "OS: 2x", "OS: 4x", "OS: 8x" }, 1);
     modeBox.addItemList (modeNames(), 1);
     scSrcBox.addItemList (juce::StringArray { "SC: Internal", "SC: External" }, 1);
+    msBox.addItemList (juce::StringArray { "Stereo (L/R)", "Mid/Side" }, 1);
+    addAndMakeVisible (msBox);
     {
         const juce::String pm { juce::CharPointer_UTF8 ("\xc2\xb1") };
         for (int v = 3; v <= 12; ++v) dbBox.addItem (pm + juce::String (v) + " dB", v - 2);
@@ -119,6 +121,7 @@ TitCompEditor::TitCompEditor (TitCompProcessor& p) : AudioProcessorEditor (&p), 
     osAtt     = std::make_unique<ComboAtt>  (proc.apvts, "os", osBox);
     modeAtt   = std::make_unique<ComboAtt>  (proc.apvts, "mode", modeBox);
     scSrcAtt  = std::make_unique<ComboAtt>  (proc.apvts, "scsrc", scSrcBox);
+    msAtt     = std::make_unique<ComboAtt>  (proc.apvts, "ms", msBox);
     dbAtt     = std::make_unique<ComboAtt>  (proc.apvts, "dbrange", dbBox);
     listenAtt = std::make_unique<ButtonAtt> (proc.apvts, "sclisten", listenBtn);
     autoAtt   = std::make_unique<ButtonAtt> (proc.apvts, "autorel", autoBtn);
@@ -845,11 +848,12 @@ void TitCompEditor::resized()
     scale = getWidth() / 1100.0;
     auto S = [this] (int v) { return juce::roundToInt ((double) v * scale); };
 
-    osBox.setBounds     (S (40),  S (12), S (100), S (26));
-    modeBox.setBounds   (S (150), S (12), S (130), S (26));
-    scSrcBox.setBounds  (S (290), S (12), S (130), S (26));
-    listenBtn.setBounds (S (430), S (12), S (130), S (26));
-    scWarn.setBounds    (S (570), S (12), S (150), S (26));
+    osBox.setBounds     (S (40),  S (12), S (85),  S (26));
+    modeBox.setBounds   (S (130), S (12), S (120), S (26));
+    scSrcBox.setBounds  (S (255), S (12), S (110), S (26));
+    listenBtn.setBounds (S (370), S (12), S (100), S (26));
+    msBox.setBounds     (S (475), S (12), S (110), S (26));
+    scWarn.setBounds    (S (590), S (12), S (130), S (26));
     presetBox.setBounds (S (725), S (12), S (100), S (26));
     savePresetBtn.setBounds (S (829), S (12), S (62), S (26));
     presetMenuBtn.setBounds (S (895), S (12), S (44), S (26));

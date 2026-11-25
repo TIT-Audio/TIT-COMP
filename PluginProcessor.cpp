@@ -216,6 +216,7 @@ void TitCompProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
     analyzerPre.push (main.getReadPointer (0), numCh > 1 ? main.getReadPointer (1) : main.getReadPointer (0), total);
 
     const Settings s = readSettings();
+    const bool msMode = P (apvts, "ms") > 0.5f;
     const bool listen = P (apvts, "sclisten") > 0.5f;
     const bool freeMode = (s.mode == Clean), mixMode = (s.mode == Clean || s.mode == VARI || s.mode == VCA || s.mode == MU);
     const float mix = mixMode ? juce::jlimit (0.f, 1.f, P (apvts, "mix") * 0.01f) : 1.f;
@@ -238,6 +239,18 @@ void TitCompProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
 
         updateBands (osFs);
 
+        // Mid/Side: se codifica la senal y el sidechain, se comprime en M y S, y se decodifica al final
+        const bool midSide = msMode && numCh == 2;
+        if (midSide)
+        {
+            auto enc = [n] (float* l, float* r)
+            {
+                for (int i = 0; i < n; ++i) { const float a = l[i], b = r[i]; l[i] = 0.5f * (a + b); r[i] = 0.5f * (a - b); }
+            };
+            enc (main.getWritePointer (0) + pos, main.getWritePointer (1) + pos);
+            enc (scBuf.getWritePointer (0), scBuf.getWritePointer (1));
+        }
+
         juce::dsp::AudioBlock<float> mainBlk (main.getArrayOfWritePointers(), (size_t) numCh, (size_t) pos, (size_t) n);
         juce::dsp::AudioBlock<float> scBlk (scBuf.getArrayOfWritePointers(), (size_t) numCh, 0, (size_t) n);
 
@@ -249,6 +262,12 @@ void TitCompProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
             auto upSc = osSc  [(size_t) osIdx - 1]->processSamplesUp (scBlk);
             processCore (up, upSc, s, listen, mix, lookMs);
             osMain[(size_t) osIdx - 1]->processSamplesDown (mainBlk);
+        }
+
+        if (midSide)
+        {
+            float* l = main.getWritePointer (0) + pos; float* r = main.getWritePointer (1) + pos;
+            for (int i = 0; i < n; ++i) { const float m = l[i], sd = r[i]; l[i] = m + sd; r[i] = m - sd; }
         }
 
         const float g0 = lastOutGain + (newOutGain - lastOutGain) * (float) pos / (float) total;
@@ -271,6 +290,7 @@ juce::AudioProcessorEditor* TitCompProcessor::createEditor() { return new TitCom
 void TitCompProcessor::getStateInformation (juce::MemoryBlock& dest)
 {
     auto state = apvts.copyState();
+    state.setProperty ("titVersion", 2, nullptr);     // version del formato del estado (para que los presets antiguos sigan abriendo)
     if (auto xml = state.createXml()) copyXmlToBinary (*xml, dest);
 }
 

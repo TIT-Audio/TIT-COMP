@@ -33,3 +33,8 @@ Cada modo muestra solo los mandos de su compresor original:
 - FAIR TIT: Input Gain, Threshold, Time Constant 1–6, Output, Mix.
 - Clean: todos los mandos libres (con Auto Release).
 Medidor horizontal IN / GR / OUT arriba y EQ del sidechain debajo.
+
+
+## Nota
+
+TIT COMP emula el comportamiento dinamico (curva, ataque, recuperacion) de cada compresor, medido en un DAW con los plugins reales. Es compresion digital limpia: no anade saturacion ni color.

@@ -96,13 +96,13 @@ private:
     double scale = 1.0;
     double viewFs = 44100.0;
 
-    juce::ComboBox osBox, modeBox, scSrcBox, dbBox, typeBox, presetBox;
+    juce::ComboBox osBox, modeBox, scSrcBox, dbBox, typeBox, presetBox, msBox;
     juce::TextButton savePresetBtn { "Save" }, presetMenuBtn { "..." };
     std::unique_ptr<juce::FileChooser> chooser;
     juce::ToggleButton listenBtn { "SC Listen" }, onBtn { "On" }, autoBtn { "Auto" };
     juce::TextButton deleteBtn { "Delete" };
     juce::Label scWarn;
-    std::unique_ptr<ComboAtt> osAtt, modeAtt, scSrcAtt, dbAtt, typeAtt;
+    std::unique_ptr<ComboAtt> osAtt, modeAtt, scSrcAtt, dbAtt, typeAtt, msAtt;
     std::unique_ptr<ButtonAtt> listenAtt, onAtt, autoAtt;
 
     int selected = 0;

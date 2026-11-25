@@ -38,6 +38,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
     layout.add (std::make_unique<juce::AudioParameterChoice> (juce::ParameterID { "scsrc", 1 }, "Sidechain Source",
                 juce::StringArray { "Internal", "External" }, 0));
     layout.add (std::make_unique<juce::AudioParameterBool> (juce::ParameterID { "sclisten", 1 }, "SC Listen", false));
+    layout.add (std::make_unique<juce::AudioParameterChoice> (juce::ParameterID { "ms", 1 }, "Stereo Mode", juce::StringArray { "Stereo (L/R)", "Mid/Side" }, 0));
 
     {
         const juce::String pm { juce::CharPointer_UTF8 ("\xc2\xb1") };

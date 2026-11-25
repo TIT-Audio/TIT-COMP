@@ -20,7 +20,7 @@ struct Settings
     double gain = 26.0;               // opto: Gain 0..100
     double pr = 40.0;                 // opto: Peak Reduction 0..100
     double vin = 0.0, vthr = 10.0;    // variable-mu: Input Gain (atenuación 0..20) y Threshold 0..10
-    // TIT MU (variable-mu de dos canales medido): Input Trim dB, Threshold 0..10, Attack posicion 0..2 (3 posiciones), Recovery posicion 0..4 (5 posiciones), Make Up 0..19 dB, Filtro sidechain Hz (0 = off)
+    // TIT MU (variable-mu de dos canales medido): Input Trim dB, Threshold 0..10, Attack posicion 0..4 (5 posiciones), Recovery posicion 0..4 (5 posiciones), Make Up 0..19 dB, Filtro sidechain Hz (0 = off)
     double muTrim = 0.0, muThr = 10.0, muAtt = 1.0, muRec = 2.0, muMk = 0.0, muFilt = 0.0;
     double outParam = 0.0;            // mando Out en dB (make-up / Output / Gain según el modo)
     double makeupDb = 0.0;            // resultado: ganancia de salida que se aplica
