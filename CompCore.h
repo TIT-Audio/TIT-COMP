@@ -123,7 +123,7 @@ inline void derive (Settings& s) noexcept
         {   // Threshold 0..10: cada unidad por debajo del maximo sube el umbral ~4.5 dB (medido 8.5 dB cada 2 unidades); Input Trim entra antes de la curva
             const double shift = (10.0 - std::clamp (s.muThr, 0.0, 10.0)) * 4.5;
             s.thr = shift - s.muTrim;
-            s.makeupDb = s.muMk + s.muTrim; break;
+            s.makeupDb = s.muMk; break;   // medido (Thresh al minimo): Input Trim +/-24 no cambia el nivel de salida, solo la cantidad de compresion
         }
         case DXX:   // compresor VCA RMS de referencia medido: Threshold en dBFS directo (knob .01..3 V: -58.3..-8.7 dBFS, 1 = -18.26); Output Gain -20..+20
             s.makeupDb = std::clamp (s.outParam, -20.0, 20.0); break;
@@ -166,7 +166,7 @@ inline double gainReductionDb (double x, const Settings& s) noexcept
         if (v <= lx[0]) gr = 0.0;
         else if (v >= lx[13]) gr = ly[13] + 0.5 * (v - lx[13]);
         else { int i = 1; while (v > lx[i]) ++i; gr = ly[i - 1] + (v - lx[i - 1]) / (lx[i] - lx[i - 1]) * (ly[i] - ly[i - 1]); }
-        return std::clamp (gr, 0.0, std::max (0.0, s.range));
+        return std::clamp (gr, 0.0, std::min (19.5, std::max (0.0, s.range)));   // medido: la reduccion satura en ~19.5 dB (Input Trim +24, rafaga a -6 dBFS)
     }
     if (s.mode == DXX)
     {   // compresor VCA RMS de referencia medido (rodilla dura): pendiente efectiva por posicion del mando Compression (1.5/2/3/4/6/10/20/inf)
