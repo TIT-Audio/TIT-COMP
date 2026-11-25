@@ -294,7 +294,8 @@ void TitCompEditor::applyModePreset (int mode)
         { 4.0,  3.0,  0.15, 180.0, 0.0 },   // FET TIT B
         { 3.0, 12.0, 10.0, 1500.0, 0.0 },   // OP TIT
         { 6.5, 9.0,  1.5,  800.0, 0.0 },   // FAIR TIT (variable-mu medido)
-        { 2.0, 20.0, 1.0,  500.0, 0.0 }    // TIT MU
+        { 2.0, 20.0, 1.0,  500.0, 0.0 },   // TIT MU
+        { 4.0,  0.0, 16.0, 100.0, 0.0 }    // DXX TIT
     };
     if (mode < Clean || mode >= NumModes) return;
     setParamGesture ("out", 0.f);
@@ -304,6 +305,7 @@ void TitCompEditor::applyModePreset (int mode)
     if (mode == OPTO) { setParamGesture ("pr", 40.f); setParamGesture ("gain", 26.f); }
     if (mode == MU) { setParamGesture ("mutrim", 0.f); setParamGesture ("muthr", 8.f); setParamGesture ("muatt", 1.f); setParamGesture ("murec", 2.f);
                       setParamGesture ("mumk", 0.f); setParamGesture ("mufilt", 0.f); setParamGesture ("mix", 100.f); setParamGesture ("link", 100.f); }
+    if (mode == DXX) { setParamGesture ("thr", -18.26f); setParamGesture ("dxcomp", 4.f); setParamGesture ("mix", 100.f); }
     if (mode == VARI) { setParamGesture ("vin", 20.f); setParamGesture ("vthr", 8.f); setParamGesture ("mix", 100.f); }
     const auto& p = presets[mode];
     setParamGesture ("ratio",   (float) p.ratio);
@@ -326,6 +328,7 @@ static std::vector<SlotSpec> slotSpecs (int mode)
         case VARI: return { { "vin", "Input Gain", 0 }, { "vthr", "Threshold", 0 }, { "release", "Time Constant", 3 }, { "out", "Output", 0 }, { "mix", "Mix", 0 } };
         case MU:   return { { "mutrim", "Input Trim", 0 }, { "muthr", "Threshold", 0 }, { "muatt", "Attack", 7 }, { "murec", "Recovery", 8 },
                             { "mumk", "Make Up", 0 }, { "mufilt", "Filter", 0 }, { "mix", "Mix", 0 }, { "link", "Stereo Link", 0 } };
+        case DXX:  return { { "thr", "Threshold", 0 }, { "dxcomp", "Compression", 9 }, { "out", "Output Gain", 0 }, { "mix", "Mix", 0 } };
         default:   return { { "thr", "Threshold", 0 }, { "ratio", "Ratio", 0 }, { "knee", "Knee", 0 }, { "attack", "Attack", 0 },
                             { "release", "Release", 0 }, { "hold", "Hold", 0 }, { "look", "Lookahead", 0 }, { "range", "Range", 0 } };
     }
@@ -354,6 +357,7 @@ void TitCompEditor::configureSlots (int mode)
             k.s.lo = k.s.hi = -1.0;
             if (mode == VCA)       { if (id == "attack") { k.s.lo = 0.1;  k.s.hi = 30.0; }  if (id == "release") { k.s.lo = 100.0; k.s.hi = 1200.0; }  if (id == "ratio") { k.s.lo = 2.0; k.s.hi = 10.0; } }
             else if (mode == FET || mode == FETB) { if (id == "attack") { k.s.lo = 0.02; k.s.hi = 0.8; }  if (id == "release") { k.s.lo = 50.0; k.s.hi = 1100.0; }  if (id == "ratio") { k.s.lo = 4.0; k.s.hi = 20.0; } }
+            else if (mode == DXX) { if (id == "thr") { k.s.lo = -58.3; k.s.hi = -8.7; }  if (id == "out") { k.s.lo = -20.0; k.s.hi = 20.0; } }
             else if (mode == VARI) { if (id == "release") { k.s.lo = 100.0; k.s.hi = 2500.0; } }
             if (k.s.limited() && (k.s.getValue() < k.s.lo || k.s.getValue() > k.s.hi))
                 k.s.setValue (juce::jlimit (k.s.lo, k.s.hi, k.s.getValue()), juce::sendNotificationSync);
@@ -374,6 +378,7 @@ void TitCompEditor::configureSlots (int mode)
                     {   // Recovery del MU (5 posiciones medidas, rampa lineal)
                         static const char* txt[] = { "1 (31 dB/s)", "2 (15 dB/s)", "3 (7.3 dB/s)", "4 (3.6 dB/s)", "5 (1.8 dB/s)" };
                         return juce::String (txt[juce::jlimit (0, 4, juce::roundToInt (r))]); }; break;
+            case 9: k.s.textFromValueFunction = [] (double r) { return r >= 99.0 ? juce::String ("inf") : juce::String (r, 1) + ":1"; }; break;
             case 6: k.s.textFromValueFunction = [] (double r) { return juce::String (r, 0) + ":1"; }; break;
             default: break;
         }
@@ -420,6 +425,7 @@ void TitCompEditor::enforceModeLimits()
     fix ("release", s.releaseMs, c.releaseMs); fix ("hold", s.holdMs, c.holdMs);
     if (s.autoRel != c.autoRel) setParamGesture ("autorel", c.autoRel ? 1.f : 0.f);
     if (s.mode == VCA)  { const double o = raw ("out"); fix ("out", o, juce::jlimit (-5.0, 15.0, o)); }
+    if (s.mode == DXX)  { const double o = raw ("out"); fix ("out", o, juce::jlimit (-20.0, 20.0, o)); const double t = raw ("thr"); fix ("thr", t, juce::jlimit (-58.3, -8.7, t)); }
     if (s.mode == VARI) { const double o = raw ("out"); fix ("out", o, juce::jlimit (-20.0, 20.0, o)); }
 
     const auto lk = titc::locksFor (s.mode);

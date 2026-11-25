@@ -60,6 +60,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
     layout.add (makeFloat ("gain",    "Opto Gain", 0.f, 100.f, 26.f, 0.f,  "",    1, 0.1f));
     layout.add (makeFloat ("vin",     "variable-mu Input Gain", 0.f, 20.f, 20.f, 0.f, "", 1, 0.1f));
     layout.add (makeFloat ("vthr",    "variable-mu Threshold",  0.f, 10.f, 8.f, 0.f, "", 2, 0.01f));
+    layout.add (makeFloat ("dxcomp",  "DXX Compression", 1.5f, 100.f, 4.f, 4.f, "",   1, 0.1f));
     layout.add (makeFloat ("mutrim",  "MU Input Trim", -24.f, 24.f,  0.f, 0.f,  "dB", 1, 0.1f));
     layout.add (makeFloat ("muthr",   "MU Threshold",   0.f, 10.f,   8.f, 0.f,  "",   1, 0.1f));
     layout.add (makeFloat ("muatt",   "MU Attack",      0.f, 4.f,    1.f, 0.f,  "",   0, 1.f));

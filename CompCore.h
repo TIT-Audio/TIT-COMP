@@ -5,7 +5,7 @@
 
 namespace titc
 {
-enum Mode { Clean = 0, VCA, FET, FETB, OPTO, VARI, MU, NumModes };
+enum Mode { Clean = 0, VCA, FET, FETB, OPTO, VARI, MU, DXX, NumModes };
 
 struct Settings
 {
@@ -22,6 +22,7 @@ struct Settings
     double vin = 0.0, vthr = 10.0;    // variable-mu: Input Gain (atenuación 0..20) y Threshold 0..10
     // TIT MU (variable-mu de dos canales medido): Input Trim dB, Threshold 0..10, Attack posicion 0..4 (5 posiciones), Recovery posicion 0..4 (5 posiciones), Make Up 0..19 dB, Filtro sidechain Hz (0 = off)
     double muTrim = 0.0, muThr = 10.0, muAtt = 1.0, muRec = 2.0, muMk = 0.0, muFilt = 0.0;
+    double dxComp = 4.0;              // DXX TIT: Compression 1.5..100 (100 = infinito)
     double outParam = 0.0;            // mando Out en dB (make-up / Output / Gain según el modo)
     double makeupDb = 0.0;            // resultado: ganancia de salida que se aplica
 };
@@ -39,6 +40,7 @@ inline ModeLocks locksFor (int mode) noexcept
         case OPTO: return { true,  true,  true,  true,  true,  false };   // opto: sin ataque ni release ni ratio seleccionables
         case VARI: return { true,  false, true,  true,  true,  false };   // variable-mu: ataque fijo; release = 6 posiciones de Time Constant
         case MU:   return { true,  true,  true,  true,  true,  false };   // TIT MU: mandos propios (Attack y Recovery de 0 a 10)
+        case DXX:  return { true,  true,  true,  true,  true,  false };   // DXX TIT: Threshold, Compression y Output Gain; ataque/release dependientes del programa (fijos)
         default:   return { false, false, false, false, false, true  };   // Clean: libre, con Auto Release
     }
 }
@@ -73,6 +75,9 @@ inline void constrain (Settings& s) noexcept
             s.muTrim = std::clamp (s.muTrim, -24.0, 24.0); s.muThr = std::clamp (s.muThr, 0.0, 10.0); s.muAtt = std::clamp (std::round (s.muAtt), 0.0, 4.0);
             s.muRec = std::clamp (std::round (s.muRec), 0.0, 4.0); s.muMk = std::clamp (s.muMk, 0.0, 19.0);
             s.muFilt = s.muFilt < 25.0 ? 0.0 : std::clamp (std::round (s.muFilt / 50.0) * 50.0, 50.0, 250.0); break;
+        case DXX:
+            s.attackMs = 16.0; s.releaseMs = 100.0; s.ratio = std::clamp (s.dxComp, 1.5, 100.0); s.knee = 0.0; s.holdMs = 0.0;
+            s.thr = std::clamp (s.thr, -58.3, -8.7); break;
         case VARI:
             s.attackMs = 1.5; s.releaseMs = snapLog (s.releaseMs, variTc, 6); s.ratio = 6.5; s.knee = 9.0; s.holdMs = 0.0; break;
         default: break;
@@ -120,6 +125,8 @@ inline void derive (Settings& s) noexcept
             s.thr = shift - s.muTrim;
             s.makeupDb = s.muMk + s.muTrim; break;
         }
+        case DXX:   // compresor VCA RMS de referencia medido: Threshold en dBFS directo (knob .01..3 V: -58.3..-8.7 dBFS, 1 = -18.26); Output Gain -20..+20
+            s.makeupDb = std::clamp (s.outParam, -20.0, 20.0); break;
         default: break;
     }
 }
@@ -161,6 +168,12 @@ inline double gainReductionDb (double x, const Settings& s) noexcept
         else { int i = 1; while (v > lx[i]) ++i; gr = ly[i - 1] + (v - lx[i - 1]) / (lx[i] - lx[i - 1]) * (ly[i] - ly[i - 1]); }
         return std::clamp (gr, 0.0, std::max (0.0, s.range));
     }
+    if (s.mode == DXX)
+    {   // compresor VCA RMS de referencia medido (rodilla dura): pendiente efectiva por posicion del mando Compression (1.5/2/3/4/6/10/20/inf)
+        static const double cx[] = { 1.5, 2.0, 3.0, 4.0, 6.0, 10.0, 20.0, 100.0 }, cy[] = { 1.55, 2.13, 2.99, 3.85, 5.8, 8.3, 12.5, 59.0 };
+        const double Re = logTable (std::clamp (s.ratio, 1.5, 100.0), cx, cy, 8), over = x - s.thr;
+        return std::clamp (over <= 0.0 ? 0.0 : over * (1.0 - 1.0 / Re), 0.0, std::max (0.0, s.range));
+    }
     double R = std::max (1.0, s.ratio);
     if (s.mode == VCA) R = s.ratio < 3.0 ? 1.81 : (s.ratio < 7.0 ? 3.04 : 7.06);   // medido: pendiente efectiva de los botones 2/4/10
     if (s.mode == FET) R = std::pow (R, 1.1);    // FET (LN) medido: la pendiente efectiva de los botones 4/8/12/20 sube a ~5/10/15/27:1   // medido en el VCA bus: ratio 2/4/10 se comporta como ~1.8/3.3/7
@@ -193,6 +206,7 @@ inline DetectorTimes detectorFor (int mode) noexcept
         case OPTO: return { 10.0, 10.0, 3.01 };
         case VARI: return { 1.0, 1.0,  3.01 };
         case MU:   return { 1.0, 1.0,  3.01 };
+        case DXX:  return { 1.0, 1.0,  3.01 };
         default:   return { 0.05, 5.0,  0.0 };
     }
 }
@@ -292,6 +306,13 @@ inline Coefs makeCoefs (const Settings& s, double fs) noexcept
             c.aRf = std::exp (-1.0 / (0.25 * fs));
             c.tauSlowBase = 2.5; c.k0 = 1.0; c.k1 = 0.0;
         }
+    }
+    if (s.mode == DXX)
+    {   // compresor VCA RMS de referencia medido (default): ataque ~16 ms (exponencial, 63 % en ~14 ms), release lineal en dB ~80 dB/s
+        c.mu = true; c.wFast = 1.0;
+        c.aA = std::exp (-1.0 / (0.016 * fs)); c.aAs = c.aA;
+        c.muRate = 80.0; c.holdSamples = 0;
+        return c;
     }
     if (s.mode == MU)
     {   // TIT MU medido (tono -6 dBFS tras -60 dBFS, sin contaminar):

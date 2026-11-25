@@ -15,7 +15,7 @@ inline const juce::StringArray& typeNames()
 }
 inline const juce::StringArray& modeNames()
 {
-    static const juce::StringArray n { "Clean", "VCA TIT", "FET TIT", "FET TIT B", "OP TIT", "FAIR TIT", "TIT MU" };
+    static const juce::StringArray n { "Clean", "VCA TIT", "FET TIT", "FET TIT B", "OP TIT", "FAIR TIT", "TIT MU", "DXX TIT" };
     return n;
 }
 inline juce::String pid (int band, const char* name) { return "b" + juce::String (band + 1) + "_" + name; }
