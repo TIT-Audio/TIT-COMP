@@ -30,6 +30,9 @@ public:
     void changeProgramName (int, const juce::String&) override {}
 
     void getStateInformation (juce::MemoryBlock&) override;
+    // Carga un estado guardado (proyecto o preset) migrando los formatos antiguos: version < 3 tenia el Threshold de TIT MU invertido
+    void loadStateXml (const juce::XmlElement& xml);
+    std::unique_ptr<juce::XmlElement> currentStateXml() { auto st = apvts.copyState(); st.setProperty ("titVersion", 3, nullptr); return st.createXml(); }
     void setStateInformation (const void*, int) override;
 
     titq::BandSettings readBandSettings (int band) const;

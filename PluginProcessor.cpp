@@ -295,7 +295,7 @@ juce::AudioProcessorEditor* TitCompProcessor::createEditor() { return new TitCom
 void TitCompProcessor::getStateInformation (juce::MemoryBlock& dest)
 {
     auto state = apvts.copyState();
-    state.setProperty ("titVersion", 2, nullptr);     // version del formato del estado (para que los presets antiguos sigan abriendo)
+    state.setProperty ("titVersion", 3, nullptr);     // version del formato del estado (para que los presets antiguos sigan abriendo)
     if (auto xml = state.createXml()) copyXmlToBinary (*xml, dest);
 }
 
@@ -303,7 +303,18 @@ void TitCompProcessor::setStateInformation (const void* data, int size)
 {
     if (auto xml = getXmlFromBinary (data, size))
         if (xml->hasTagName (apvts.state.getType()))
-            apvts.replaceState (juce::ValueTree::fromXml (*xml));
+            loadStateXml (*xml);
+}
+
+void TitCompProcessor::loadStateXml (const juce::XmlElement& xml)
+{
+    auto vt = juce::ValueTree::fromXml (xml);
+    if ((int) vt.getProperty ("titVersion", 0) < 3)
+        for (auto c : vt)
+            if (c.getProperty ("id").toString() == "muthr")
+                c.setProperty ("value", 10.0 - (double) c.getProperty ("value", 8.0), nullptr);   // antes 10 = maxima compresion; ahora 0 (MIN) = maxima compresion
+    vt.setProperty ("titVersion", 3, nullptr);
+    apvts.replaceState (vt);
 }
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter() { return new TitCompProcessor(); }

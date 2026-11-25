@@ -21,7 +21,7 @@ int main()
         { 0.0000,0.0000,0.0000,0.2812,4.5000,9.0000,13.5000,18.0000,22.5000,27.0000,31.5000 },
         { 0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.9889,3.9778,7.9778,11.9778,15.9778 },
         { 0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,1.4220,5.9231 },
-        { 0.0000,0.0000,0.1500,0.7650,1.7300,3.4800,6.2000,9.8000,13.2000,16.2000,18.9700 },
+        { 0.0700,0.1700,0.4200,1.0000,2.1400,4.2600,7.2800,10.3200,13.6800,16.8100,19.4800 },
         { 0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,4.4416,8.8831,13.3247 } };
     for (int m = 0; m < titc::NumModes; ++m)
     {
@@ -56,6 +56,20 @@ int main()
                 }
             }
         }
+
+    // ---- 2b) TIT MU: Threshold (0 = MIN = maxima compresion) medido en un compresor variable-mu de referencia; GR a -6 y -30 dBFS ----
+    {
+        static const double thr[] = { 0.0, 5.0, 7.5, 10.0 }, g6[] = { 19.48, 10.14, 4.95, 0.50 }, g30[] = { 8.29, 0.91, 0.23, 0.01 };
+        for (int i = 0; i < 4; ++i)
+        {
+            titc::Settings s; s.mode = titc::MU; s.muThr = thr[i]; titc::constrain (s); titc::derive (s);
+            check (std::abs (titc::gainReductionDb (-6.0, s) - g6[i]) < 0.8, "MU threshold -6", titc::gainReductionDb (-6.0, s), g6[i]);
+            check (std::abs (titc::gainReductionDb (-30.0, s) - g30[i]) < 0.8, "MU threshold -30", titc::gainReductionDb (-30.0, s), g30[i]);
+        }
+        titc::Settings s; s.mode = titc::MU; s.muThr = 0.0; s.muTrim = 24.0; titc::constrain (s); titc::derive (s);   // Trim +24: satura en ~19.5 y no suma ganancia
+        check (std::abs (titc::gainReductionDb (-6.0, s) - 19.5) < 0.1, "MU trim +24 satura", titc::gainReductionDb (-6.0, s), 19.5);
+        check (std::abs (s.makeupDb) < 1.0e-9, "MU trim sin ganancia", s.makeupDb, 0.0);
+    }
 
     // ---- 3) DXX TIT (compresor VCA RMS de referencia, medido): efectiva de cada posicion de Compression y ataque de ~16 ms ----
     {

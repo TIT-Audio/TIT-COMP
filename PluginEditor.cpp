@@ -303,7 +303,7 @@ void TitCompEditor::applyModePreset (int mode)
     if (mode == VCA)  setParamGesture ("thr", -10.f);
     if (mode == FET || mode == FETB) { setParamGesture ("fin", 12.f); setParamGesture ("fout", 29.f); }
     if (mode == OPTO) { setParamGesture ("pr", 40.f); setParamGesture ("gain", 26.f); }
-    if (mode == MU) { setParamGesture ("mutrim", 0.f); setParamGesture ("muthr", 8.f); setParamGesture ("muatt", 1.f); setParamGesture ("murec", 2.f);
+    if (mode == MU) { setParamGesture ("mutrim", 0.f); setParamGesture ("muthr", 2.f); setParamGesture ("muatt", 1.f); setParamGesture ("murec", 2.f);
                       setParamGesture ("mumk", 0.f); setParamGesture ("mufilt", 0.f); setParamGesture ("mix", 100.f); setParamGesture ("link", 100.f); }
     if (mode == DXX) { setParamGesture ("thr", -18.26f); setParamGesture ("dxcomp", 4.f); setParamGesture ("mix", 100.f); }
     if (mode == VARI) { setParamGesture ("vin", 20.f); setParamGesture ("vthr", 8.f); setParamGesture ("mix", 100.f); }
@@ -791,7 +791,7 @@ void TitCompEditor::loadPreset (const juce::String& name)
 {
     if (auto xml = juce::XmlDocument::parse (presetDir().getChildFile (name + ".titc")))
         if (xml->hasTagName (proc.apvts.state.getType()))
-            proc.apvts.replaceState (juce::ValueTree::fromXml (*xml));
+            proc.loadStateXml (*xml);
 }
 
 void TitCompEditor::savePreset (const juce::String& rawName)
@@ -800,7 +800,7 @@ void TitCompEditor::savePreset (const juce::String& rawName)
     if (name.isEmpty()) return;
     auto dir = presetDir();
     dir.createDirectory();
-    if (auto xml = proc.apvts.copyState().createXml())
+    if (auto xml = proc.currentStateXml())
         xml->writeTo (dir.getChildFile (name + ".titc"));
     refreshPresets();
 }
@@ -827,11 +827,11 @@ void TitCompEditor::showPresetMenu()
             if (safe == nullptr || f == juce::File()) return;
             if (saving)
             {
-                if (auto xml = safe->proc.apvts.copyState().createXml()) xml->writeTo (f.withFileExtension ("titc"));
+                if (auto xml = safe->proc.currentStateXml()) xml->writeTo (f.withFileExtension ("titc"));
             }
             else if (auto xml = juce::XmlDocument::parse (f))
                 if (xml->hasTagName (safe->proc.apvts.state.getType()))
-                    safe->proc.apvts.replaceState (juce::ValueTree::fromXml (*xml));
+                    safe->proc.loadStateXml (*xml);
         });
     });
 }

@@ -21,7 +21,7 @@ struct Settings
     double pr = 40.0;                 // opto: Peak Reduction 0..100
     double vin = 0.0, vthr = 10.0;    // variable-mu: Input Gain (atenuación 0..20) y Threshold 0..10
     // TIT MU (variable-mu de dos canales medido): Input Trim dB, Threshold 0..10, Attack posicion 0..4 (5 posiciones), Recovery posicion 0..4 (5 posiciones), Make Up 0..19 dB, Filtro sidechain Hz (0 = off)
-    double muTrim = 0.0, muThr = 10.0, muAtt = 1.0, muRec = 2.0, muMk = 0.0, muFilt = 0.0;
+    double muTrim = 0.0, muThr = 2.0, muAtt = 1.0, muRec = 2.0, muMk = 0.0, muFilt = 0.0;
     double dxComp = 4.0;              // DXX TIT: Compression 1.5..100 (100 = infinito)
     double outParam = 0.0;            // mando Out en dB (make-up / Output / Gain según el modo)
     double makeupDb = 0.0;            // resultado: ganancia de salida que se aplica
@@ -120,8 +120,10 @@ inline void derive (Settings& s) noexcept
             s.makeupDb = 1.58 + std::clamp (s.outParam, -20.0, 20.0) - att; break;
         }
         case MU:
-        {   // Threshold 0..10: cada unidad por debajo del maximo sube el umbral ~4.5 dB (medido 8.5 dB cada 2 unidades); Input Trim entra antes de la curva
-            const double shift = (10.0 - std::clamp (s.muThr, 0.0, 10.0)) * 4.5;
+        {   // Threshold 0..10 como el original: izquierda (MIN) = mas compresion; el umbral sube 20/31.5/46 dB al 50/75/100 % del recorrido; Input Trim entra antes de la curva
+            static const double tx[] = { 0.0, 5.0, 7.5, 10.0 }, ty[] = { 0.0, 20.0, 31.5, 46.0 };   // medido en el 0 / 50 / 75 / 100 % del recorrido
+            const double q = std::clamp (s.muThr, 0.0, 10.0); int k = 1; while (q > tx[k]) ++k;
+            const double shift = ty[k - 1] + (q - tx[k - 1]) / (tx[k] - tx[k - 1]) * (ty[k] - ty[k - 1]);
             s.thr = shift - s.muTrim;
             s.makeupDb = s.muMk; break;   // medido (Thresh al minimo): Input Trim +/-24 no cambia el nivel de salida, solo la cantidad de compresion
         }
@@ -158,15 +160,16 @@ inline double logTable (double x, const double* xs, const double* ys, int n) noe
 inline double gainReductionDb (double x, const Settings& s) noexcept
 {
     if (s.mode == MU)
-    {   // curva medida (Threshold al maximo): reduccion absoluta (dB) segun el nivel de entrada; por encima de -2 dBFS sigue con pendiente 0.5 (2:1)
-        static const double lx[] = { -52.0, -48.0, -44.0, -40.0, -36.0, -32.0, -28.0, -24.0, -20.0, -16.0, -12.0, -8.0, -4.0, -2.0 };
-        static const double ly[] = {   0.0,   0.15,  0.5,   1.03,  1.73,  2.67,  4.29,  6.2,   8.4,   11.2,  13.2,  15.2, 17.2, 17.97 };
-        const double v = x - s.thr;
+    {   // curva medida con el Threshold en MIN (maxima compresion) y Input Trim 0: reduccion (dB) segun el nivel de entrada; satura en ~19.5 dB
+        static const double lx[] = { -90.0, -80.0, -70.0, -68.0, -66.0, -64.0, -62.0, -60.0, -58.0, -56.0, -54.0, -52.0, -50.0, -48.0, -46.0, -44.0, -42.0, -40.0, -38.0, -36.0, -34.0, -32.0, -30.0, -28.0, -26.0, -24.0, -22.0, -20.0, -18.0, -16.0, -14.0, -12.0, -10.0, -8.0, -6.0, -4.0, -2.0, 0.0 };
+        static const double ly[] = { 0.00, 0.01, 0.05, 0.07, 0.09, 0.12, 0.17, 0.23, 0.31, 0.42, 0.57, 0.76, 1.00, 1.30, 1.68, 2.14, 2.72, 3.43, 4.26, 5.24, 6.26, 7.28, 8.29, 9.31, 10.32, 11.34, 12.66, 13.68, 14.69, 15.81, 16.81, 17.82, 18.84, 19.48, 19.48, 19.48, 19.48, 19.48 };
+        const int n = (int) (sizeof (lx) / sizeof (lx[0]));
+        const double v = x - s.thr;   // thr = desplazamiento del Threshold (0 en MIN, ~45 dB en MAX) menos Input Trim
         double gr;
         if (v <= lx[0]) gr = 0.0;
-        else if (v >= lx[13]) gr = ly[13] + 0.5 * (v - lx[13]);
+        else if (v >= lx[n - 1]) gr = ly[n - 1];
         else { int i = 1; while (v > lx[i]) ++i; gr = ly[i - 1] + (v - lx[i - 1]) / (lx[i] - lx[i - 1]) * (ly[i] - ly[i - 1]); }
-        return std::clamp (gr, 0.0, std::min (19.5, std::max (0.0, s.range)));   // medido: la reduccion satura en ~19.5 dB (Input Trim +24, rafaga a -6 dBFS)
+        return std::clamp (gr, 0.0, std::min (19.5, std::max (0.0, s.range)));
     }
     if (s.mode == DXX)
     {   // compresor VCA RMS de referencia medido (rodilla dura): pendiente efectiva por posicion del mando Compression (1.5/2/3/4/6/10/20/inf)
