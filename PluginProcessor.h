@@ -67,6 +67,7 @@ private:
     std::array<std::vector<float>, 2> delayBuf;
     int delayPos = 0;
     std::array<titc::Ballistics, 2> bal;
+    titq::Biquad muHp;
     std::array<double, 2> det { 0.0, 0.0 };
 
     juce::AudioBuffer<float> scBuf;

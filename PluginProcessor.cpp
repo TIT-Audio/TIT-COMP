@@ -38,6 +38,8 @@ Settings TitCompProcessor::readSettings() const
     s.range = P (apvts, "range");    s.link = P (apvts, "link") * 0.01;
     s.autoRel = P (apvts, "autorel") > 0.5f;
     s.fin = P (apvts, "fin"); s.fout = P (apvts, "fout"); s.pr = P (apvts, "pr"); s.gain = P (apvts, "gain");
+    s.muTrim = P (apvts, "mutrim"); s.muThr = P (apvts, "muthr"); s.muAtt = P (apvts, "muatt"); s.muRec = P (apvts, "murec");
+    s.muMk = P (apvts, "mumk"); s.muFilt = P (apvts, "mufilt");
     s.vin = P (apvts, "vin"); s.vthr = P (apvts, "vthr"); s.outParam = P (apvts, "out");
     if (s.mode != Clean) s.range = 60.0;
     constrain (s);
@@ -134,6 +136,12 @@ void TitCompProcessor::processCore (juce::dsp::AudioBlock<float>& m, juce::dsp::
             for (int ch = 0; ch < numCh; ++ch)
                 rt.eq.process (sc.getChannelPointer ((size_t) ch), n, ch);
 
+    if (s.mode == MU && s.muFilt >= 25.0)
+    {   // filtro de sidechain de TIT MU (paso alto de 12 dB/oct)
+        muHp.set (titq::Biquad::highpass (osFs, s.muFilt, 0.7071));
+        for (int ch = 0; ch < numCh; ++ch) muHp.process (sc.getChannelPointer ((size_t) ch), n, ch);
+    }
+
     const auto dt = detectorFor (s.mode);
     const double aDA = std::exp (-1.0 / (dt.atkMs * 0.001 * osFs));
     const double aDR = std::exp (-1.0 / (dt.relMs * 0.001 * osFs));
@@ -209,7 +217,7 @@ void TitCompProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
 
     const Settings s = readSettings();
     const bool listen = P (apvts, "sclisten") > 0.5f;
-    const bool freeMode = (s.mode == Clean), mixMode = (s.mode == Clean || s.mode == VARI || s.mode == VCA);
+    const bool freeMode = (s.mode == Clean), mixMode = (s.mode == Clean || s.mode == VARI || s.mode == VCA || s.mode == MU);
     const float mix = mixMode ? juce::jlimit (0.f, 1.f, P (apvts, "mix") * 0.01f) : 1.f;
     const double lookMs = freeMode ? (double) P (apvts, "look") : 0.0;
     const float newOutGain = juce::Decibels::decibelsToGain ((float) s.makeupDb);

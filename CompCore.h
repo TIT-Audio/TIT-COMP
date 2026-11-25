@@ -5,7 +5,7 @@
 
 namespace titc
 {
-enum Mode { Clean = 0, VCA, FET, FETB, OPTO, VARI, NumModes };
+enum Mode { Clean = 0, VCA, FET, FETB, OPTO, VARI, MU, NumModes };
 
 struct Settings
 {
@@ -20,6 +20,8 @@ struct Settings
     double gain = 26.0;               // opto: Gain 0..100
     double pr = 40.0;                 // opto: Peak Reduction 0..100
     double vin = 0.0, vthr = 10.0;    // variable-mu: Input Gain (atenuación 0..20) y Threshold 0..10
+    // TIT MU (variable-mu de dos canales medido): Input Trim dB, Threshold 0..10, Attack 0..10 (0 rapido), Recovery 0..10 (0 rapido), Make Up 0..19 dB, Filtro sidechain Hz (0 = off)
+    double muTrim = 0.0, muThr = 10.0, muAtt = 5.0, muRec = 5.0, muMk = 0.0, muFilt = 0.0;
     double outParam = 0.0;            // mando Out en dB (make-up / Output / Gain según el modo)
     double makeupDb = 0.0;            // resultado: ganancia de salida que se aplica
 };
@@ -36,6 +38,7 @@ inline ModeLocks locksFor (int mode) noexcept
         case FETB: return { false, false, false, true,  true,  false };   // FET: ataque y release continuos dentro de su rango; ratio 4/8/12/20
         case OPTO: return { true,  true,  true,  true,  true,  false };   // opto: sin ataque ni release ni ratio seleccionables
         case VARI: return { true,  false, true,  true,  true,  false };   // variable-mu: ataque fijo; release = 6 posiciones de Time Constant
+        case MU:   return { true,  true,  true,  true,  true,  false };   // TIT MU: mandos propios (Attack y Recovery de 0 a 10)
         default:   return { false, false, false, false, false, true  };   // Clean: libre, con Auto Release
     }
 }
@@ -63,6 +66,11 @@ inline void constrain (Settings& s) noexcept
             s.ratio = snapLog (s.ratio, fetRat, 4); s.knee = 3.0; s.holdMs = 0.0; break;
         case OPTO:
             s.attackMs = 10.0; s.releaseMs = 1500.0; s.ratio = 3.0; s.knee = 12.0; s.holdMs = 0.0; break;
+        case MU:
+            s.attackMs = 1.0; s.releaseMs = 500.0; s.ratio = 2.0; s.knee = 20.0; s.holdMs = 0.0;
+            s.muTrim = std::clamp (s.muTrim, -24.0, 24.0); s.muThr = std::clamp (s.muThr, 0.0, 10.0); s.muAtt = std::clamp (s.muAtt, 0.0, 10.0);
+            s.muRec = std::clamp (s.muRec, 0.0, 10.0); s.muMk = std::clamp (s.muMk, 0.0, 19.0);
+            s.muFilt = s.muFilt < 25.0 ? 0.0 : std::clamp (std::round (s.muFilt / 50.0) * 50.0, 50.0, 250.0); break;
         case VARI:
             s.attackMs = 1.5; s.releaseMs = snapLog (s.releaseMs, variTc, 6); s.ratio = 6.5; s.knee = 9.0; s.holdMs = 0.0; break;
         default: break;
@@ -104,6 +112,12 @@ inline void derive (Settings& s) noexcept
             s.thr = ty[i - 1] + (x - tx[i - 1]) / (tx[i] - tx[i - 1]) * (ty[i] - ty[i - 1]) + att;
             s.makeupDb = 1.58 + std::clamp (s.outParam, -20.0, 20.0) - att; break;
         }
+        case MU:
+        {   // Threshold 0..10: cada unidad por debajo del maximo sube el umbral ~4.5 dB (medido 8.5 dB cada 2 unidades); Input Trim entra antes de la curva
+            const double shift = (10.0 - std::clamp (s.muThr, 0.0, 10.0)) * 4.5;
+            s.thr = shift - s.muTrim;
+            s.makeupDb = s.muMk + s.muTrim; break;
+        }
         default: break;
     }
 }
@@ -134,6 +148,17 @@ inline double logTable (double x, const double* xs, const double* ys, int n) noe
 // Curva estática: reducción de ganancia en dB (>= 0) para un nivel de entrada x en dB
 inline double gainReductionDb (double x, const Settings& s) noexcept
 {
+    if (s.mode == MU)
+    {   // curva medida (Threshold al maximo): reduccion absoluta (dB) segun el nivel de entrada; por encima de -2 dBFS sigue con pendiente 0.5 (2:1)
+        static const double lx[] = { -52.0, -48.0, -44.0, -40.0, -36.0, -32.0, -28.0, -24.0, -20.0, -16.0, -12.0, -8.0, -4.0, -2.0 };
+        static const double ly[] = {   0.0,   0.15,  0.5,   1.03,  1.73,  2.67,  4.29,  6.2,   8.4,   11.2,  13.2,  15.2, 17.2, 17.97 };
+        const double v = x - s.thr;
+        double gr;
+        if (v <= lx[0]) gr = 0.0;
+        else if (v >= lx[13]) gr = ly[13] + 0.5 * (v - lx[13]);
+        else { int i = 1; while (v > lx[i]) ++i; gr = ly[i - 1] + (v - lx[i - 1]) / (lx[i] - lx[i - 1]) * (ly[i] - ly[i - 1]); }
+        return std::clamp (gr, 0.0, std::max (0.0, s.range));
+    }
     double R = std::max (1.0, s.ratio);
     if (s.mode == VCA) R = std::pow (R, 0.85);
     if (s.mode == FET) R = std::pow (R, 1.1);    // FET (LN) medido: la pendiente efectiva de los botones 4/8/12/20 sube a ~5/10/15/27:1   // medido en el VCA bus: ratio 2/4/10 se comporta como ~1.8/3.3/7
@@ -163,6 +188,7 @@ inline DetectorTimes detectorFor (int mode) noexcept
         case FETB: return { 0.02, 3.0,  0.0 };
         case OPTO: return { 10.0, 10.0, 3.01 };
         case VARI: return { 1.0, 1.0,  3.01 };
+        case MU:   return { 1.0, 1.0,  3.01 };
         default:   return { 0.05, 5.0,  0.0 };
     }
 }
@@ -176,7 +202,8 @@ struct Ballistics
 
 struct Coefs
 {
-    bool dual = false;
+    bool dual = false, mu = false;
+    double muRate = 7.0;   // TIT MU: velocidad de recuperacion en dB por segundo (rampa lineal)
     double aA = 0.0, aAs = 0.0, aR = 0.0;
     int holdSamples = 0;
     double aRf = 0.0, tauSlowBase = 1.0, k0 = 1.0, k1 = 0.0, wFast = 0.5, memCoef = 0.0, fs = 44100.0;
@@ -262,12 +289,31 @@ inline Coefs makeCoefs (const Settings& s, double fs) noexcept
             c.tauSlowBase = 2.5; c.k0 = 1.0; c.k1 = 0.0;
         }
     }
+    if (s.mode == MU)
+    {   // TIT MU medido: ataque en dos etapas (rapida ~0.7 ms + cola) y recuperacion en rampa lineal de dB/s
+        const double a = std::clamp (s.muAtt, 0.0, 10.0);
+        const double wf = a <= 5.0 ? 1.0 + (0.18 - 1.0) * a / 5.0 : 0.18 + (0.73 - 0.18) * (a - 5.0) / 5.0;
+        const double tauSlow = a <= 5.0 ? 0.7 * std::pow (45.0 / 0.7, a / 5.0) : 45.0 * std::pow (120.0 / 45.0, (a - 5.0) / 5.0);
+        const double r = std::clamp (s.muRec, 0.0, 10.0);
+        c.mu = true; c.wFast = wf;
+        c.aA = std::exp (-1.0 / (0.0007 * fs));
+        c.aAs = std::exp (-1.0 / (tauSlow * 0.001 * fs));
+        c.muRate = r <= 5.0 ? 30.0 * std::pow (7.0 / 30.0, r / 5.0) : 7.0 * std::pow (1.8 / 7.0, (r - 5.0) / 5.0);
+    }
     return c;
 }
 
 // Un paso de balística sobre la reducción objetivo g (dB). Devuelve la reducción suavizada (dB).
 inline double step (Ballistics& b, double g, const Coefs& c) noexcept
 {
+    if (c.mu)
+    {
+        const double dn = c.muRate / c.fs;
+        if (g > b.ef) b.ef = c.aA * b.ef + (1.0 - c.aA) * g; else b.ef = std::max (g, b.ef - dn);
+        if (g > b.es) b.es = c.aAs * b.es + (1.0 - c.aAs) * g; else b.es = std::max (g, b.es - dn);
+        b.e = c.wFast * b.ef + (1.0 - c.wFast) * b.es;
+        return b.e;
+    }
     if (! c.dual)
     {
         if (g > b.e)            { b.e = c.aA * b.e + (1.0 - c.aA) * g; b.hold = c.holdSamples; }

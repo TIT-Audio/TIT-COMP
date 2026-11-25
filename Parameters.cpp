@@ -59,6 +59,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
     layout.add (makeFloat ("gain",    "Opto Gain", 0.f, 100.f, 26.f, 0.f,  "",    1, 0.1f));
     layout.add (makeFloat ("vin",     "variable-mu Input Gain", 0.f, 20.f, 20.f, 0.f, "", 1, 0.1f));
     layout.add (makeFloat ("vthr",    "variable-mu Threshold",  0.f, 10.f, 8.f, 0.f, "", 2, 0.01f));
+    layout.add (makeFloat ("mutrim",  "MU Input Trim", -24.f, 24.f,  0.f, 0.f,  "dB", 1, 0.1f));
+    layout.add (makeFloat ("muthr",   "MU Threshold",   0.f, 10.f,   8.f, 0.f,  "",   1, 0.1f));
+    layout.add (makeFloat ("muatt",   "MU Attack",      0.f, 10.f,   5.f, 0.f,  "",   1, 0.1f));
+    layout.add (makeFloat ("murec",   "MU Recovery",    0.f, 10.f,   5.f, 0.f,  "",   1, 0.1f));
+    layout.add (makeFloat ("mumk",    "MU Make Up",     0.f, 19.f,   0.f, 0.f,  "dB", 1, 0.1f));
+    layout.add (makeFloat ("mufilt",  "MU Filter",      0.f, 250.f,  0.f, 0.f,  "Hz", 0, 50.f));
     layout.add (makeFloat ("hold",    "Hold",       0.f, 500.f,     0.f, 0.f,   "ms",  3, 0.1f));
     layout.add (makeFloat ("look",    "Lookahead",  0.f, 20.f,      0.f, 0.f,   "ms",  3, 0.1f));
     layout.add (makeFloat ("range",   "Range",      0.f, 60.f,     60.f, 0.f,   "dB",  3, 0.1f));

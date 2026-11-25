@@ -277,7 +277,8 @@ void TitCompEditor::applyModePreset (int mode)
         { 4.0,  3.0,  0.2,  200.0, 0.0 },   // FET TIT
         { 4.0,  3.0,  0.15, 180.0, 0.0 },   // FET TIT B
         { 3.0, 12.0, 10.0, 1500.0, 0.0 },   // OP TIT
-        { 6.5, 9.0,  1.5,  800.0, 0.0 }    // VARI TIT (variable-mu medido)
+        { 6.5, 9.0,  1.5,  800.0, 0.0 },   // VARI TIT (variable-mu medido)
+        { 2.0, 20.0, 1.0,  500.0, 0.0 }    // TIT MU
     };
     if (mode < Clean || mode >= NumModes) return;
     setParamGesture ("out", 0.f);
@@ -285,6 +286,8 @@ void TitCompEditor::applyModePreset (int mode)
     if (mode == VCA)  setParamGesture ("thr", -10.f);
     if (mode == FET || mode == FETB) { setParamGesture ("fin", 12.f); setParamGesture ("fout", 29.f); }
     if (mode == OPTO) { setParamGesture ("pr", 40.f); setParamGesture ("gain", 26.f); }
+    if (mode == MU) { setParamGesture ("mutrim", 0.f); setParamGesture ("muthr", 8.f); setParamGesture ("muatt", 5.f); setParamGesture ("murec", 5.f);
+                      setParamGesture ("mumk", 0.f); setParamGesture ("mufilt", 0.f); setParamGesture ("mix", 100.f); setParamGesture ("link", 100.f); }
     if (mode == VARI) { setParamGesture ("vin", 20.f); setParamGesture ("vthr", 8.f); setParamGesture ("mix", 100.f); }
     const auto& p = presets[mode];
     setParamGesture ("ratio",   (float) p.ratio);
@@ -305,6 +308,8 @@ static std::vector<SlotSpec> slotSpecs (int mode)
         case FETB: return { { "fin", "Input", 0 }, { "fout", "Output", 0 }, { "attack", "Attack", 1 }, { "release", "Release", 2 }, { "ratio", "Ratio", 6 } };
         case OPTO: return { { "pr", "Peak Reduction", 0 }, { "gain", "Gain", 0 } };
         case VARI: return { { "vin", "Input Gain", 0 }, { "vthr", "Threshold", 0 }, { "release", "Time Constant", 3 }, { "out", "Output", 0 }, { "mix", "Mix", 0 } };
+        case MU:   return { { "mutrim", "Input Trim", 0 }, { "muthr", "Threshold", 0 }, { "muatt", "Attack", 7 }, { "murec", "Recovery", 8 },
+                            { "mumk", "Make Up", 0 }, { "mufilt", "Filter", 0 }, { "mix", "Mix", 0 }, { "link", "Stereo Link", 0 } };
         default:   return { { "thr", "Threshold", 0 }, { "ratio", "Ratio", 0 }, { "knee", "Knee", 0 }, { "attack", "Attack", 0 },
                             { "release", "Release", 0 }, { "hold", "Hold", 0 }, { "look", "Lookahead", 0 }, { "range", "Range", 0 } };
     }
@@ -336,6 +341,14 @@ void TitCompEditor::configureSlots (int mode)
                     { int best = 0; for (int j = 1; j < 6; ++j) if (std::abs (std::log (ms / tc[j])) < std::abs (std::log (ms / tc[best]))) best = j; return juce::String (best + 1); }; break;
             case 4: k.s.textFromValueFunction = [] (double db) { return juce::String (juce::jlimit (0.0, 100.0, (db + 24.0) / 48.0 * 100.0), 0); }; break;
             case 5: k.s.textFromValueFunction = [] (double ms) { return juce::String (ms / 1000.0, 1) + " s"; }; break;
+            case 7: k.s.textFromValueFunction = [] (double a)
+                    {   // Attack del MU: constante de tiempo de la etapa lenta (0 rapido .. 10 lento)
+                        const double ms = a <= 5.0 ? 0.7 * std::pow (45.0 / 0.7, a / 5.0) : 45.0 * std::pow (120.0 / 45.0, (a - 5.0) / 5.0);
+                        return juce::String (a, 1) + " (" + (ms < 10.0 ? juce::String (ms, 1) : juce::String (juce::roundToInt (ms))) + " ms)"; }; break;
+            case 8: k.s.textFromValueFunction = [] (double r)
+                    {   // Recovery del MU: rampa de recuperacion en dB por segundo (0 rapido .. 10 lento)
+                        const double v = r <= 5.0 ? 30.0 * std::pow (7.0 / 30.0, r / 5.0) : 7.0 * std::pow (1.8 / 7.0, (r - 5.0) / 5.0);
+                        return juce::String (r, 1) + " (" + juce::String (v, 1) + " dB/s)"; }; break;
             case 6: k.s.textFromValueFunction = [] (double r) { return juce::String (r, 0) + ":1"; }; break;
             default: break;
         }
