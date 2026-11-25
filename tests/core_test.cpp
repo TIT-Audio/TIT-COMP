@@ -79,17 +79,26 @@ int main()
             titc::Settings s; s.mode = titc::DXX; s.thr = -18.26; s.dxComp = pos[i]; titc::constrain (s); titc::derive (s);
             check (std::abs (titc::gainReductionDb (-6.0, s) - g6[i]) < 0.35, "DXX compresion", titc::gainReductionDb (-6.0, s), g6[i]);
         }
-        static const double dMs[] = { 5, 10, 20, 50, 100 }, dm[] = { 2.82, 4.75, 6.36, 8.19, 8.86 };
-        titc::Settings s; s.mode = titc::DXX; titc::constrain (s);
+        // ataque dependiente del salto: tiempo (ms) hasta el 63 % de la reduccion final, medido con un salto desde -60 dBFS (compresion infinita)
+        static const double lv[] = { -16, -12, -9, -6, -2 }, m63[] = { 61, 31, 21, 15, 10 };
         for (double fs : { 44100.0, 48000.0, 96000.0 })
-        {
-            titc::Coefs c = titc::makeCoefs (s, fs); titc::Ballistics b; int k = 0;
-            for (int i = 1; i <= (int) (0.1 * fs) && k < 5; ++i)
+            for (int k = 0; k < 5; ++k)
             {
-                const double e = titc::step (b, 9.05, c);
-                if (i == (int) std::lround (dMs[k] * 0.001 * fs)) { check (std::abs (e - dm[k]) < 1.0, "ataque DXX", e, dm[k]); ++k; }
+                titc::Settings s; s.mode = titc::DXX; s.thr = -18.26; s.dxComp = 100.0; titc::constrain (s); titc::derive (s);
+                const auto dt = titc::detectorFor (titc::DXX);
+                const double aD = std::exp (-1.0 / (dt.atkMs * 0.001 * fs));
+                titc::Coefs c = titc::makeCoefs (s, fs); titc::Ballistics b;
+                const double P = std::pow (10.0, lv[k] / 10.0) * 0.5, fin = titc::gainReductionDb (lv[k], s);
+                double det = std::pow (10.0, -6.0) * 0.5; int t63 = -1;
+                for (int i = 1; i <= (int) (0.3 * fs) && t63 < 0; ++i)
+                {
+                    det = aD * det + (1.0 - aD) * P;
+                    const double e = titc::step (b, titc::gainReductionDb (10.0 * std::log10 (det) + dt.offsetDb, s), c);
+                    if (e >= 0.632 * fin) t63 = i;
+                }
+                const double ms = t63 * 1000.0 / fs;
+                check (std::abs (ms - m63[k]) < 0.15 * m63[k] + 1.5, "ataque DXX", ms, m63[k]);
             }
-        }
     }
 
     if (failures == 0) std::printf ("Todas las pruebas del nucleo han pasado.\n");

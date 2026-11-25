@@ -209,7 +209,7 @@ inline DetectorTimes detectorFor (int mode) noexcept
         case OPTO: return { 10.0, 10.0, 3.01 };
         case VARI: return { 1.0, 1.0,  3.01 };
         case MU:   return { 1.0, 1.0,  3.01 };
-        case DXX:  return { 1.0, 1.0,  3.01 };
+        case DXX:  return { 35.0, 35.0, 3.01 };   // compresor VCA RMS de referencia: detector RMS verdadero (~35 ms en potencia); el ataque dependiente del salto y el release de ~125 dB/s salen de aqui
         default:   return { 0.05, 5.0,  0.0 };
     }
 }
@@ -311,10 +311,10 @@ inline Coefs makeCoefs (const Settings& s, double fs) noexcept
         }
     }
     if (s.mode == DXX)
-    {   // compresor VCA RMS de referencia medido (default): ataque ~16 ms (exponencial, 63 % en ~14 ms), release lineal en dB ~80 dB/s
+    {   // compresor VCA RMS de referencia medido: la reduccion sigue al detector RMS (35 ms) sin balistica propia; el ataque (61/31/21/15/10 ms para 2/6/9/12/16 dB) y el release (~125 dB/s) salen del detector
         c.mu = true; c.wFast = 1.0;
-        c.aA = std::exp (-1.0 / (0.016 * fs)); c.aAs = c.aA;
-        c.muRate = 80.0; c.holdSamples = 0;
+        c.aA = std::exp (-1.0 / (0.0001 * fs)); c.aAs = c.aA;
+        c.muRate = 1.0e5; c.holdSamples = 0;
         return c;
     }
     if (s.mode == MU)
