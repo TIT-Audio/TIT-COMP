@@ -59,7 +59,9 @@ inline void constrain (Settings& s) noexcept
     {
         case VCA:
             s.attackMs = snapLog (s.attackMs, vcaA, 6); s.releaseMs = snapLog (s.releaseMs, vcaR, 4);
-            s.ratio = snapLog (s.ratio, vcaRat, 3); s.knee = 4.0; s.holdMs = 0.0; break;
+            s.ratio = snapLog (s.ratio, vcaRat, 3);
+            s.knee = s.ratio < 3.0 ? 12.4 : (s.ratio < 7.0 ? 4.5 : 1.3);   // medido: la rodilla depende del boton de ratio (2:1 ancha, 10:1 casi dura)
+            s.holdMs = 0.0; break;
         case FET:
         case FETB:
             s.attackMs = std::clamp (s.attackMs, 0.02, 0.8); s.releaseMs = std::clamp (s.releaseMs, 50.0, 1100.0);
@@ -160,9 +162,11 @@ inline double gainReductionDb (double x, const Settings& s) noexcept
         return std::clamp (gr, 0.0, std::max (0.0, s.range));
     }
     double R = std::max (1.0, s.ratio);
-    if (s.mode == VCA) R = std::pow (R, 0.85);
+    if (s.mode == VCA) R = s.ratio < 3.0 ? 1.81 : (s.ratio < 7.0 ? 3.04 : 7.06);   // medido: pendiente efectiva de los botones 2/4/10
     if (s.mode == FET) R = std::pow (R, 1.1);    // FET (LN) medido: la pendiente efectiva de los botones 4/8/12/20 sube a ~5/10/15/27:1   // medido en el VCA bus: ratio 2/4/10 se comporta como ~1.8/3.3/7
     double thr = s.thr;
+    if (s.mode == VCA)
+        thr *= s.ratio < 3.0 ? 1.506 : (s.ratio < 7.0 ? 1.0 : 0.738);   // medido: el umbral efectivo se desplaza con el boton de ratio (las curvas se cruzan en ~8 dB de reduccion a 0 dBFS)
     if (s.mode == FET || s.mode == FETB)
     {   // FET medido (LN y Rev A): al subir el boton de ratio (4/8/12/20) el umbral efectivo sube ~0/2.9/3.8/5.3 dB
         static const double rx[] = { 4.0, 8.0, 12.0, 20.0 }, ry[] = { 0.0, 2.9, 3.8, 5.3 };
