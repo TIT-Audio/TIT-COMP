@@ -23,7 +23,7 @@ int main()
         { 0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,1.4220,5.9231 },
         { 0.0700,0.1700,0.4200,1.0000,2.1400,4.2600,7.2800,10.3200,13.6800,16.8100,19.4800 },
         { 0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,4.4416,8.8831,13.3247 },
-        { 0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,1.2048,4.0004,7.6188 } };   // TIT DIGITAL (rodilla infinita)
+        { 0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.5625,4.5000,9.0000,13.5000 } };   // TIT DIGITAL con rodilla normal = Clean
     for (int m = 0; m < titc::NumModes; ++m)
     {
         titc::Settings s; s.mode = m; titc::constrain (s); titc::derive (s);
@@ -74,7 +74,7 @@ int main()
 
     // ---- 2c) TIT DIGITAL (rodilla infinita): la compresion empieza en el umbral y la ratio instantanea crece con el nivel ----
     {
-        titc::Settings s; s.mode = titc::DIG; s.thr = -30.0; s.ratio = 1000.0; titc::constrain (s); titc::derive (s);
+        titc::Settings s; s.mode = titc::DIG; s.thr = -30.0; s.ratio = 1000.0; s.knee = 31.0; titc::constrain (s); titc::derive (s);
         check (titc::gainReductionDb (-30.0, s) < 1.0e-9 && titc::gainReductionDb (-31.0, s) < 1.0e-9, "TIT DIGITAL sin compresion bajo el umbral", titc::gainReductionDb (-31.0, s), 0.0);
         double prev = 0.0, prevSlope = 0.0;
         for (double x = -30.0; x <= 0.0; x += 1.0)

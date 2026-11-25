@@ -177,8 +177,8 @@ inline double gainReductionDb (double x, const Settings& s) noexcept
         const double Re = logTable (std::clamp (s.ratio, 1.5, 100.0), cx, cy, 8), over = x - s.thr;
         return std::clamp (over <= 0.0 ? 0.0 : over * (1.0 - 1.0 / Re), 0.0, std::max (0.0, s.range));
     }
-    if (s.mode == DIG)
-    {   // TIT DIGITAL: rodilla "infinita" medida en el compresor de un channel strip con la rodilla al maximo (ratios 2/4/10/1000, umbral -30): la compresion empieza en
+    if (s.mode == DIG && s.knee >= 30.95)
+    {   // TIT DIGITAL con el Knee al maximo ("inf"): rodilla infinita medida en el compresor de un channel strip con la rodilla al maximo (ratios 2/4/10/1000, umbral -30): la compresion empieza en
         // el umbral y la pendiente de la curva pasa de 1 a 1/ratio de forma exponencial con el nivel sobre el umbral; la constante T depende de la ratio
         // (error maximo 0.23 dB frente a las 4 curvas medidas). No hay rodilla dura.
         const double over = x - s.thr;

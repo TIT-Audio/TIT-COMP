@@ -41,6 +41,7 @@ Settings TitCompProcessor::readSettings() const
     s.muTrim = P (apvts, "mutrim"); s.muThr = P (apvts, "muthr"); s.muAtt = P (apvts, "muatt"); s.muRec = P (apvts, "murec");
     s.dxComp = P (apvts, "dxcomp"); s.muMk = P (apvts, "mumk"); s.muFilt = P (apvts, "mufilt");
     s.vin = P (apvts, "vin"); s.vthr = P (apvts, "vthr"); s.outParam = P (apvts, "out");
+    if (s.mode == DIG) s.knee = P (apvts, "dknee");
     if (s.mode != Clean && s.mode != DIG) s.range = 60.0;
     constrain (s);
     derive (s);   // cada modo solo admite los valores del compresor original
