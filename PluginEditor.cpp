@@ -295,11 +295,12 @@ void TitCompEditor::applyModePreset (int mode)
         { 3.0, 12.0, 10.0, 1500.0, 0.0 },   // OP TIT
         { 6.5, 9.0,  1.5,  800.0, 0.0 },   // FAIR TIT (variable-mu medido)
         { 2.0, 20.0, 1.0,  500.0, 0.0 },   // TIT MU
-        { 4.0,  0.0, 16.0, 100.0, 0.0 }    // DXX TIT
+        { 4.0,  0.0, 16.0, 100.0, 0.0 },   // DXX TIT
+        { 4.0,  0.0, 10.0, 120.0, 0.0 }    // TIT DIGITAL (rodilla infinita fija)
     };
     if (mode < Clean || mode >= NumModes) return;
     setParamGesture ("out", 0.f);
-    if (mode == Clean) { setParamGesture ("thr", -18.f); return; }
+    if (mode == Clean || mode == DIG) { setParamGesture ("thr", -18.f); if (mode == DIG) { setParamGesture ("ratio", 4.f); setParamGesture ("attack", 10.f); setParamGesture ("release", 120.f); } return; }
     if (mode == VCA)  setParamGesture ("thr", -10.f);
     if (mode == FET || mode == FETB) { setParamGesture ("fin", 12.f); setParamGesture ("fout", 29.f); }
     if (mode == OPTO) { setParamGesture ("pr", 40.f); setParamGesture ("gain", 26.f); }
@@ -329,7 +330,9 @@ static std::vector<SlotSpec> slotSpecs (int mode)
         case MU:   return { { "mutrim", "Input Trim", 0 }, { "muthr", "Threshold", 0 }, { "muatt", "Attack", 7 }, { "murec", "Recovery", 8 },
                             { "mumk", "Make Up", 0 }, { "mufilt", "Filter", 0 }, { "mix", "Mix", 0 }, { "link", "Stereo Link", 0 } };
         case DXX:  return { { "thr", "Threshold", 0 }, { "dxcomp", "Compression", 9 }, { "out", "Output Gain", 0 }, { "mix", "Mix", 0 } };
-        default:   return { { "thr", "Threshold", 0 }, { "ratio", "Ratio", 0 }, { "knee", "Knee", 10 }, { "attack", "Attack", 0 },
+        case DIG:  return { { "thr", "Threshold", 0 }, { "ratio", "Ratio", 0 }, { "attack", "Attack", 0 }, { "release", "Release", 0 }, { "hold", "Hold", 0 },
+                            { "look", "Lookahead", 0 }, { "range", "Range", 0 } };
+        default:   return { { "thr", "Threshold", 0 }, { "ratio", "Ratio", 0 }, { "knee", "Knee", 0 }, { "attack", "Attack", 0 },
                             { "release", "Release", 0 }, { "hold", "Hold", 0 }, { "look", "Lookahead", 0 }, { "range", "Range", 0 } };
     }
 }
@@ -351,7 +354,7 @@ void TitCompEditor::configureSlots (int mode)
         k.att = std::make_unique<SliderAtt> (proc.apvts, sp.id, k.s);
         k.l.setText (sp.label, juce::dontSendNotification);
         k.s.setVisible (true); k.l.setVisible (true);
-        k.s.setTextBoxIsEditable (sp.fmt == 0 || sp.fmt == 10);
+        k.s.setTextBoxIsEditable (sp.fmt == 0);
         {   // recorrido de la ruleta = rango real del original en cada modo
             const juce::String id (sp.id);
             k.s.lo = k.s.hi = -1.0;
@@ -378,7 +381,6 @@ void TitCompEditor::configureSlots (int mode)
                     {   // Recovery del MU (5 posiciones medidas, rampa lineal)
                         static const char* txt[] = { "1 (31 dB/s)", "2 (15 dB/s)", "3 (7.3 dB/s)", "4 (3.6 dB/s)", "5 (1.8 dB/s)" };
                         return juce::String (txt[juce::jlimit (0, 4, juce::roundToInt (r))]); }; break;
-            case 10: k.s.textFromValueFunction = [] (double w) { return w >= 30.95 ? juce::String ("inf") : juce::String (w, 1) + " dB"; }; break;
             case 9: k.s.textFromValueFunction = [] (double r) { return r >= 99.0 ? juce::String ("inf") : juce::String (r, 1) + ":1"; }; break;
             case 6: k.s.textFromValueFunction = [] (double r) { return juce::String (r, 0) + ":1"; }; break;
             default: break;
@@ -387,7 +389,7 @@ void TitCompEditor::configureSlots (int mode)
     }
     for (int i = kLink; i <= kOut; ++i)
     {
-        const bool v = (mode == Clean);
+        const bool v = (mode == Clean || mode == DIG);
         knobs[(size_t) i].s.setVisible (v); knobs[(size_t) i].l.setVisible (v);
     }
     layoutKnobs();

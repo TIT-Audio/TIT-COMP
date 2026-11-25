@@ -5,7 +5,7 @@
 
 namespace titc
 {
-enum Mode { Clean = 0, VCA, FET, FETB, OPTO, VARI, MU, DXX, NumModes };
+enum Mode { Clean = 0, VCA, FET, FETB, OPTO, VARI, MU, DXX, DIG, NumModes };
 
 struct Settings
 {
@@ -41,7 +41,7 @@ inline ModeLocks locksFor (int mode) noexcept
         case VARI: return { true,  false, true,  true,  true,  false };   // variable-mu: ataque fijo; release = 6 posiciones de Time Constant
         case MU:   return { true,  true,  true,  true,  true,  false };   // TIT MU: mandos propios (Attack y Recovery de 0 a 10)
         case DXX:  return { true,  true,  true,  true,  true,  false };   // DXX TIT: Threshold, Compression y Output Gain; ataque/release dependientes del programa (fijos)
-        default:   return { false, false, false, false, false, true  };   // Clean: libre, con Auto Release
+        default:   return { false, false, false, false, false, true  };   // Clean y TIT DIGITAL: libres, con Auto Release
     }
 }
 inline double snapLog (double x, const double* t, int n) noexcept
@@ -56,7 +56,7 @@ inline void constrain (Settings& s) noexcept
 {
     static const double vcaA[] = { 0.1, 0.3, 1.0, 3.0, 10.0, 30.0 }, vcaR[] = { 100.0, 300.0, 600.0, 1200.0 }, vcaRat[] = { 2.0, 4.0, 10.0 };
     static const double fetRat[] = { 4.0, 8.0, 12.0, 20.0 }, variTc[] = { 100.0, 200.0, 800.0, 1100.0, 1500.0, 2500.0 };
-    s.autoRel = s.autoRel && (s.mode == VCA || s.mode == Clean);
+    s.autoRel = s.autoRel && (s.mode == VCA || s.mode == Clean || s.mode == DIG);
     switch (s.mode)
     {
         case VCA:
@@ -177,8 +177,8 @@ inline double gainReductionDb (double x, const Settings& s) noexcept
         const double Re = logTable (std::clamp (s.ratio, 1.5, 100.0), cx, cy, 8), over = x - s.thr;
         return std::clamp (over <= 0.0 ? 0.0 : over * (1.0 - 1.0 / Re), 0.0, std::max (0.0, s.range));
     }
-    if (s.mode == Clean && s.knee >= 30.95)
-    {   // Knee "inf" (Clean) medido en el compresor de un channel strip con la rodilla al maximo (ratios 2/4/10/1000, umbral -30): la compresion empieza en
+    if (s.mode == DIG)
+    {   // TIT DIGITAL: rodilla "infinita" medida en el compresor de un channel strip con la rodilla al maximo (ratios 2/4/10/1000, umbral -30): la compresion empieza en
         // el umbral y la pendiente de la curva pasa de 1 a 1/ratio de forma exponencial con el nivel sobre el umbral; la constante T depende de la ratio
         // (error maximo 0.23 dB frente a las 4 curvas medidas). No hay rodilla dura.
         const double over = x - s.thr;
@@ -272,7 +272,7 @@ inline Coefs makeCoefs (const Settings& s, double fs) noexcept
     c.holdSamples = (int) std::lround (std::max (0.0, s.holdMs) * 0.001 * fs);
     c.memCoef = 1.0 / (8.0 * fs);
 
-    if (s.autoRel && (s.mode == VCA || s.mode == Clean))
+    if (s.autoRel && (s.mode == VCA || s.mode == Clean || s.mode == DIG))
     {   // VCA bus en Auto (medido): arranque rápido pequeño (~11 % en 50 ms) y cola lenta de ~2 s
         c.dual = true; c.wFast = 0.1;
         c.aRf = std::exp (-1.0 / (0.05 * fs));

@@ -41,7 +41,7 @@ Settings TitCompProcessor::readSettings() const
     s.muTrim = P (apvts, "mutrim"); s.muThr = P (apvts, "muthr"); s.muAtt = P (apvts, "muatt"); s.muRec = P (apvts, "murec");
     s.dxComp = P (apvts, "dxcomp"); s.muMk = P (apvts, "mumk"); s.muFilt = P (apvts, "mufilt");
     s.vin = P (apvts, "vin"); s.vthr = P (apvts, "vthr"); s.outParam = P (apvts, "out");
-    if (s.mode != Clean) s.range = 60.0;
+    if (s.mode != Clean && s.mode != DIG) s.range = 60.0;
     constrain (s);
     derive (s);   // cada modo solo admite los valores del compresor original
     return s;
@@ -226,7 +226,7 @@ void TitCompProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
     }
     const bool msMode = P (apvts, "ms") > 0.5f;
     const bool listen = P (apvts, "sclisten") > 0.5f;
-    const bool freeMode = (s.mode == Clean), mixMode = (s.mode == Clean || s.mode == VARI || s.mode == VCA || s.mode == MU || s.mode == DXX);
+    const bool freeMode = (s.mode == Clean || s.mode == DIG), mixMode = (s.mode == Clean || s.mode == DIG || s.mode == VARI || s.mode == VCA || s.mode == MU || s.mode == DXX);
     const float mix = mixMode ? juce::jlimit (0.f, 1.f, P (apvts, "mix") * 0.01f) : 1.f;
     const double lookMs = freeMode ? (double) P (apvts, "look") : 0.0;
     const float newOutGain = juce::Decibels::decibelsToGain ((float) s.makeupDb);

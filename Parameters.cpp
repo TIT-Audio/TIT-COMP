@@ -50,7 +50,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
     // ---- compresor ----
     layout.add (makeFloat ("thr",     "Threshold", -60.f, 15.f,   -18.f, 0.f,   "dB",  3, 0.1f));
     layout.add (makeFloat ("ratio",   "Ratio",       1.f, 20.f,     4.f, 4.f,   ":1",  3, 0.1f));
-    layout.add (makeFloat ("knee",    "Knee",        0.f, 31.f,     6.f, 0.f,   "dB",  3, 0.1f));
+    layout.add (makeFloat ("knee",    "Knee",        0.f, 30.f,     6.f, 0.f,   "dB",  3, 0.1f));
     layout.add (makeFloat ("attack",  "Attack",     0.01f, 250.f,  10.f, 5.f,   "ms",  2, 0.f));
     layout.add (makeFloat ("release", "Release",    5.f, 5000.f,  120.f, 150.f, "ms",  2, 0.f));
     layout.add (std::make_unique<juce::AudioParameterBool> (juce::ParameterID { "autorel", 1 }, "Auto Release", false));
