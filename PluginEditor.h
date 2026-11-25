@@ -65,6 +65,7 @@ private:
     void loadPreset (const juce::String& name);
     void askSavePreset();
     void savePreset (const juce::String& name);
+    void showPresetMenu();
 
     bool isBandUsed (int b) const;
     bool isBandOn (int b) const;
@@ -96,7 +97,8 @@ private:
     double viewFs = 44100.0;
 
     juce::ComboBox osBox, modeBox, scSrcBox, dbBox, typeBox, presetBox;
-    juce::TextButton savePresetBtn { "Save" };
+    juce::TextButton savePresetBtn { "Save" }, presetMenuBtn { "..." };
+    std::unique_ptr<juce::FileChooser> chooser;
     juce::ToggleButton listenBtn { "SC Listen" }, onBtn { "On" }, autoBtn { "Auto" };
     juce::TextButton deleteBtn { "Delete" };
     juce::Label scWarn;

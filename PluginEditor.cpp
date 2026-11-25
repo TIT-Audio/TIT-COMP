@@ -110,6 +110,8 @@ TitCompEditor::TitCompEditor (TitCompProcessor& p) : AudioProcessorEditor (&p), 
         presetBox.setText ("", juce::dontSendNotification);
     };
     savePresetBtn.onClick = [this] { askSavePreset(); };
+    addAndMakeVisible (presetMenuBtn);
+    presetMenuBtn.onClick = [this] { showPresetMenu(); };
     refreshPresets();
     addAndMakeVisible (listenBtn); addAndMakeVisible (autoBtn); addAndMakeVisible (onBtn); addAndMakeVisible (deleteBtn);
     typeBox.addItemList (typeNames(), 1);
@@ -764,13 +766,13 @@ void TitCompEditor::paint (juce::Graphics& g)
 
 juce::File TitCompEditor::presetDir()
 {
-    return juce::File::getSpecialLocation (juce::File::userApplicationDataDirectory).getChildFile ("TIT COMP").getChildFile ("Presets");
+    return juce::File::getSpecialLocation (juce::File::userDocumentsDirectory).getChildFile ("TIT COMP").getChildFile ("Presets");
 }
 
 void TitCompEditor::refreshPresets()
 {
     presetBox.clear (juce::dontSendNotification);
-    auto files = presetDir().findChildFiles (juce::File::findFiles, false, "*.xml");
+    auto files = presetDir().findChildFiles (juce::File::findFiles, false, "*.titc");
     files.sort();
     int id = 1;
     for (const auto& f : files) presetBox.addItem (f.getFileNameWithoutExtension(), id++);
@@ -778,7 +780,7 @@ void TitCompEditor::refreshPresets()
 
 void TitCompEditor::loadPreset (const juce::String& name)
 {
-    if (auto xml = juce::XmlDocument::parse (presetDir().getChildFile (name + ".xml")))
+    if (auto xml = juce::XmlDocument::parse (presetDir().getChildFile (name + ".titc")))
         if (xml->hasTagName (proc.apvts.state.getType()))
             proc.apvts.replaceState (juce::ValueTree::fromXml (*xml));
 }
@@ -790,13 +792,44 @@ void TitCompEditor::savePreset (const juce::String& rawName)
     auto dir = presetDir();
     dir.createDirectory();
     if (auto xml = proc.apvts.copyState().createXml())
-        xml->writeTo (dir.getChildFile (name + ".xml"));
+        xml->writeTo (dir.getChildFile (name + ".titc"));
     refreshPresets();
+}
+
+// Menu "...": guardar el preset en cualquier sitio (pendrive, nube...) o cargar uno de otro PC
+void TitCompEditor::showPresetMenu()
+{
+    juce::PopupMenu m;
+    m.addItem (1, "Save preset to a file...");
+    m.addItem (2, "Load preset from a file...");
+    m.addItem (3, "Open the presets folder");
+    juce::Component::SafePointer<TitCompEditor> safe (this);
+    m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (presetMenuBtn), [safe] (int r)
+    {
+        if (safe == nullptr || r == 0) return;
+        if (r == 3) { presetDir().createDirectory(); presetDir().revealToUser(); return; }
+        const bool saving = (r == 1);
+        safe->chooser = std::make_unique<juce::FileChooser> (saving ? "Save preset" : "Load preset", presetDir(), "*.titc");
+        const int flags = saving ? (juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles | juce::FileBrowserComponent::warnAboutOverwriting)
+                                 : (juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles);
+        safe->chooser->launchAsync (flags, [safe, saving] (const juce::FileChooser& fc)
+        {
+            const auto f = fc.getResult();
+            if (safe == nullptr || f == juce::File()) return;
+            if (saving)
+            {
+                if (auto xml = safe->proc.apvts.copyState().createXml()) xml->writeTo (f.withFileExtension ("titc"));
+            }
+            else if (auto xml = juce::XmlDocument::parse (f))
+                if (xml->hasTagName (safe->proc.apvts.state.getType()))
+                    safe->proc.apvts.replaceState (juce::ValueTree::fromXml (*xml));
+        });
+    });
 }
 
 void TitCompEditor::askSavePreset()
 {
-    auto* aw = new juce::AlertWindow ("Save preset", "Preset name:", juce::MessageBoxIconType::NoIcon);
+    auto* aw = new juce::AlertWindow ("Save preset", "Name of the preset:", juce::MessageBoxIconType::NoIcon);
     aw->addTextEditor ("name", "", "");
     aw->addButton ("Save", 1, juce::KeyPress (juce::KeyPress::returnKey));
     aw->addButton ("Cancel", 0, juce::KeyPress (juce::KeyPress::escapeKey));
@@ -817,8 +850,9 @@ void TitCompEditor::resized()
     scSrcBox.setBounds  (S (290), S (12), S (130), S (26));
     listenBtn.setBounds (S (430), S (12), S (130), S (26));
     scWarn.setBounds    (S (570), S (12), S (150), S (26));
-    presetBox.setBounds (S (725), S (12), S (130), S (26));
-    savePresetBtn.setBounds (S (860), S (12), S (80), S (26));
+    presetBox.setBounds (S (725), S (12), S (100), S (26));
+    savePresetBtn.setBounds (S (829), S (12), S (62), S (26));
+    presetMenuBtn.setBounds (S (895), S (12), S (44), S (26));
     dbBox.setBounds     (S (950), S (12), S (110), S (26));
 
     for (int i = 0; i < titc::kNumBands; ++i)
