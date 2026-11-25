@@ -8,7 +8,7 @@ Compresor gratuito con sidechain interno y externo, EQ de 10 bandas en el sidech
 - **SC Listen** para oír el sidechain ya filtrado.
 - Oversampling Off / 2x / 4x / 8x. El plugin informa de su latencia al DAW.
 - Medidor de reducción de ganancia (GR).
-- Modos: Clean, **VCA TIT**, **FET TIT**, **FET TIT B**, **OP TIT**, **VARI TIT**. Cada modo cambia el detector, la rodilla mínima y la balística (tiempos de ataque y liberación), con valores medidos sobre compresores reales (solo el comportamiento dinámico). VARI TIT es un único modo: ataque fijo ~1.5 ms, rodilla ancha y liberación de una o dos etapas según el mando Release. Al elegir uno se cargan sus valores de partida, que luego se pueden mover.
+- Modos: Clean, **VCA TIT**, **FET TIT**, **FET TIT B**, **OP TIT**, **FAIR TIT**. Cada modo cambia el detector, la rodilla mínima y la balística (tiempos de ataque y liberación), con valores medidos sobre compresores reales (solo el comportamiento dinámico). FAIR TIT es un único modo: ataque fijo ~1.5 ms, rodilla ancha y liberación de una o dos etapas según el mando Release. Al elegir uno se cargan sus valores de partida, que luego se pueden mover.
 
 ## Compilar
 Sube todos los archivos a la raíz del repositorio y `build.yml` a `.github/workflows/build.yml`. Añade el archivo `LICENSE` (AGPLv3). El workflow genera el artefacto `TITCOMP-all`.
@@ -23,13 +23,13 @@ Cada modo respeta al compresor original medido: solo se pueden mover sus mandos 
 - VCA TIT: ataque 0.1/0.3/1/3/10/30 ms, release 0.1/0.3/0.6/1.2 s + botón Auto Release, ratio 2/4/10, rodilla fija.
 - FET TIT / FET TIT B: ataque 0.02–0.8 ms, release 50–1100 ms, ratio 4/8/12/20, rodilla fija.
 - OP TIT: sin ataque, release ni ratio.
-- VARI TIT: ataque fijo; release = 6 posiciones de Time Constant; ratio y rodilla fijos.
+- FAIR TIT: ataque fijo; release = 6 posiciones de Time Constant; ratio y rodilla fijos.
 
 ## Controles por modo (v0.5)
 Cada modo muestra solo los mandos de su compresor original:
 - VCA TIT: Threshold, Ratio, Attack, Release (+Auto), Make-up.
 - FET TIT / FET TIT B: Input, Output, Attack 1–7, Release 1–7, Ratio 4/8/12/20.
 - OP TIT: Peak Reduction y Gain.
-- VARI TIT: Input Gain, Threshold, Time Constant 1–6, Output, Mix.
+- FAIR TIT: Input Gain, Threshold, Time Constant 1–6, Output, Mix.
 - Clean: todos los mandos libres (con Auto Release).
 Medidor horizontal IN / GR / OUT arriba y EQ del sidechain debajo.

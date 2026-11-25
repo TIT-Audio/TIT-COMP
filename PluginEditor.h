@@ -27,9 +27,28 @@ private:
         void drawToggleButton (juce::Graphics&, juce::ToggleButton&, bool highlighted, bool down) override;
     };
 
+    // Slider cuyo recorrido (de tope a tope) se acota a [lo, hi]: el mando llega al tope justo en el primer y el ultimo valor reales del original
+    struct LimitedSlider : juce::Slider
+    {
+        double lo = -1.0, hi = -1.0;    // hi <= lo: sin acotar
+        bool limited() const noexcept { return hi > lo; }
+        double valueToProportionOfLength (double v) override
+        {
+            if (! limited()) return juce::Slider::valueToProportionOfLength (v);
+            const double pl = juce::Slider::valueToProportionOfLength (lo), ph = juce::Slider::valueToProportionOfLength (hi);
+            return juce::jlimit (0.0, 1.0, (juce::Slider::valueToProportionOfLength (juce::jlimit (lo, hi, v)) - pl) / (ph - pl));
+        }
+        double proportionOfLengthToValue (double p) override
+        {
+            if (! limited()) return juce::Slider::proportionOfLengthToValue (p);
+            const double pl = juce::Slider::valueToProportionOfLength (lo), ph = juce::Slider::valueToProportionOfLength (hi);
+            return juce::jlimit (lo, hi, juce::Slider::proportionOfLengthToValue (pl + juce::jlimit (0.0, 1.0, p) * (ph - pl)));
+        }
+    };
+
     struct Knob
     {
-        juce::Slider s;
+        LimitedSlider s;
         juce::Label l;
         std::unique_ptr<SliderAtt> att;
     };

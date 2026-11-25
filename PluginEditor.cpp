@@ -277,7 +277,7 @@ void TitCompEditor::applyModePreset (int mode)
         { 4.0,  3.0,  0.2,  200.0, 0.0 },   // FET TIT
         { 4.0,  3.0,  0.15, 180.0, 0.0 },   // FET TIT B
         { 3.0, 12.0, 10.0, 1500.0, 0.0 },   // OP TIT
-        { 6.5, 9.0,  1.5,  800.0, 0.0 },   // VARI TIT (variable-mu medido)
+        { 6.5, 9.0,  1.5,  800.0, 0.0 },   // FAIR TIT (variable-mu medido)
         { 2.0, 20.0, 1.0,  500.0, 0.0 }    // TIT MU
     };
     if (mode < Clean || mode >= NumModes) return;
@@ -333,6 +333,15 @@ void TitCompEditor::configureSlots (int mode)
         k.l.setText (sp.label, juce::dontSendNotification);
         k.s.setVisible (true); k.l.setVisible (true);
         k.s.setTextBoxIsEditable (sp.fmt == 0);
+        {   // recorrido de la ruleta = rango real del original en cada modo
+            const juce::String id (sp.id);
+            k.s.lo = k.s.hi = -1.0;
+            if (mode == VCA)       { if (id == "attack") { k.s.lo = 0.1;  k.s.hi = 30.0; }  if (id == "release") { k.s.lo = 100.0; k.s.hi = 1200.0; }  if (id == "ratio") { k.s.lo = 2.0; k.s.hi = 10.0; } }
+            else if (mode == FET || mode == FETB) { if (id == "attack") { k.s.lo = 0.02; k.s.hi = 0.8; }  if (id == "release") { k.s.lo = 50.0; k.s.hi = 1100.0; }  if (id == "ratio") { k.s.lo = 4.0; k.s.hi = 20.0; } }
+            else if (mode == VARI) { if (id == "release") { k.s.lo = 100.0; k.s.hi = 2500.0; } }
+            if (k.s.limited() && (k.s.getValue() < k.s.lo || k.s.getValue() > k.s.hi))
+                k.s.setValue (juce::jlimit (k.s.lo, k.s.hi, k.s.getValue()), juce::sendNotificationSync);
+        }
         switch (sp.fmt)
         {
             case 1: k.s.textFromValueFunction = [] (double ms) { return juce::String (juce::roundToInt (juce::jlimit (0.02, 0.8, ms) * 1000.0)) + " us"; }; break;
