@@ -60,6 +60,11 @@ private:
     void enforceModeLimits();
     void configureSlots (int mode);
     void layoutKnobs();
+    static juce::File presetDir();
+    void refreshPresets();
+    void loadPreset (const juce::String& name);
+    void askSavePreset();
+    void savePreset (const juce::String& name);
 
     bool isBandUsed (int b) const;
     bool isBandOn (int b) const;
@@ -90,7 +95,8 @@ private:
     double scale = 1.0;
     double viewFs = 44100.0;
 
-    juce::ComboBox osBox, modeBox, scSrcBox, dbBox, typeBox;
+    juce::ComboBox osBox, modeBox, scSrcBox, dbBox, typeBox, presetBox;
+    juce::TextButton savePresetBtn { "Save" };
     juce::ToggleButton listenBtn { "SC Listen" }, onBtn { "On" }, autoBtn { "Auto" };
     juce::TextButton deleteBtn { "Delete" };
     juce::Label scWarn;

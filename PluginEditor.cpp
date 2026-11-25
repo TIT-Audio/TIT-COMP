@@ -99,7 +99,18 @@ TitCompEditor::TitCompEditor (TitCompProcessor& p) : AudioProcessorEditor (&p), 
         const juce::String pm { juce::CharPointer_UTF8 ("\xc2\xb1") };
         for (int v = 3; v <= 12; ++v) dbBox.addItem (pm + juce::String (v) + " dB", v - 2);
     }
-    for (auto* c : { &osBox, &modeBox, &scSrcBox, &dbBox, &typeBox }) addAndMakeVisible (*c);
+    for (auto* c : { &osBox, &modeBox, &scSrcBox, &dbBox, &typeBox, &presetBox }) addAndMakeVisible (*c);
+    addAndMakeVisible (savePresetBtn);
+    presetBox.setTextWhenNothingSelected ("Presets");
+    presetBox.onChange = [this]
+    {
+        const auto name = presetBox.getText();
+        if (presetBox.getSelectedId() > 0) loadPreset (name);
+        presetBox.setSelectedId (0, juce::dontSendNotification);
+        presetBox.setText ("", juce::dontSendNotification);
+    };
+    savePresetBtn.onClick = [this] { askSavePreset(); };
+    refreshPresets();
     addAndMakeVisible (listenBtn); addAndMakeVisible (autoBtn); addAndMakeVisible (onBtn); addAndMakeVisible (deleteBtn);
     typeBox.addItemList (typeNames(), 1);
 
@@ -703,7 +714,7 @@ void TitCompEditor::paint (juce::Graphics& g)
     {
         const auto m = meterArea();
         struct Bar { const char* name; float v, lo, hi; bool isGr; };
-        const Bar bars[3] = { { "IN", inShown, -60.f, 0.f, false }, { "GR", grShown, 0.f, 10.f, true }, { "OUT", outShown, -60.f, 0.f, false } };
+        const Bar bars[3] = { { "IN", inShown, -60.f, 0.f, false }, { "GR", grShown, 0.f, 20.f, true }, { "OUT", outShown, -60.f, 0.f, false } };
         const float rowH = 38.f * s, gap = 3.f * s;
         for (int i = 0; i < 3; ++i)
         {
@@ -725,7 +736,7 @@ void TitCompEditor::paint (juce::Graphics& g)
             g.setColour (kPink2.withAlpha (0.8f));
             g.drawRoundedRectangle (r, 4.f * s, 1.f);
             g.setFont (9.f * s);
-            const float marks[] = { 0.f, 1.f, 2.f, 3.f, 4.f, 5.f, 6.f, 7.f, 8.f, 9.f, 10.f };
+            const float marks[] = { 0.f, 2.f, 4.f, 6.f, 8.f, 10.f, 12.f, 14.f, 16.f, 18.f, 20.f };
             const float marksDb[] = { -60.f, -48.f, -36.f, -24.f, -18.f, -12.f, -6.f, -3.f, 0.f };
             for (int k = 0; k < (b.isGr ? 11 : 9); ++k)
             {
@@ -751,6 +762,51 @@ void TitCompEditor::paint (juce::Graphics& g)
     }
 }
 
+juce::File TitCompEditor::presetDir()
+{
+    return juce::File::getSpecialLocation (juce::File::userApplicationDataDirectory).getChildFile ("TIT COMP").getChildFile ("Presets");
+}
+
+void TitCompEditor::refreshPresets()
+{
+    presetBox.clear (juce::dontSendNotification);
+    auto files = presetDir().findChildFiles (juce::File::findFiles, false, "*.xml");
+    files.sort();
+    int id = 1;
+    for (const auto& f : files) presetBox.addItem (f.getFileNameWithoutExtension(), id++);
+}
+
+void TitCompEditor::loadPreset (const juce::String& name)
+{
+    if (auto xml = juce::XmlDocument::parse (presetDir().getChildFile (name + ".xml")))
+        if (xml->hasTagName (proc.apvts.state.getType()))
+            proc.apvts.replaceState (juce::ValueTree::fromXml (*xml));
+}
+
+void TitCompEditor::savePreset (const juce::String& rawName)
+{
+    const auto name = juce::File::createLegalFileName (rawName.trim());
+    if (name.isEmpty()) return;
+    auto dir = presetDir();
+    dir.createDirectory();
+    if (auto xml = proc.apvts.copyState().createXml())
+        xml->writeTo (dir.getChildFile (name + ".xml"));
+    refreshPresets();
+}
+
+void TitCompEditor::askSavePreset()
+{
+    auto* aw = new juce::AlertWindow ("Save preset", "Preset name:", juce::MessageBoxIconType::NoIcon);
+    aw->addTextEditor ("name", "", "");
+    aw->addButton ("Save", 1, juce::KeyPress (juce::KeyPress::returnKey));
+    aw->addButton ("Cancel", 0, juce::KeyPress (juce::KeyPress::escapeKey));
+    juce::Component::SafePointer<TitCompEditor> safe (this);
+    aw->enterModalState (true, juce::ModalCallbackFunction::create ([safe, aw] (int result)
+    {
+        if (result == 1 && safe != nullptr) safe->savePreset (aw->getTextEditorContents ("name"));
+    }), true);
+}
+
 void TitCompEditor::resized()
 {
     scale = getWidth() / 1100.0;
@@ -760,7 +816,9 @@ void TitCompEditor::resized()
     modeBox.setBounds   (S (150), S (12), S (130), S (26));
     scSrcBox.setBounds  (S (290), S (12), S (130), S (26));
     listenBtn.setBounds (S (430), S (12), S (130), S (26));
-    scWarn.setBounds    (S (570), S (12), S (260), S (26));
+    scWarn.setBounds    (S (570), S (12), S (150), S (26));
+    presetBox.setBounds (S (725), S (12), S (130), S (26));
+    savePresetBtn.setBounds (S (860), S (12), S (80), S (26));
     dbBox.setBounds     (S (950), S (12), S (110), S (26));
 
     for (int i = 0; i < titc::kNumBands; ++i)
