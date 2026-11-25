@@ -178,13 +178,13 @@ inline double gainReductionDb (double x, const Settings& s) noexcept
         return std::clamp (over <= 0.0 ? 0.0 : over * (1.0 - 1.0 / Re), 0.0, std::max (0.0, s.range));
     }
     if (s.mode == Clean && s.knee >= 30.95)
-    {   // Knee "inf" (Clean), al estilo de la rodilla blanda "en todos los niveles" de un compresor de valvulas: la compresion empieza en el umbral y la ratio
-        // instantanea crece poco a poco con el nivel (1 + sobre/K) hasta llegar a la ratio del mando, que actua como ratio final; no hay rodilla dura
-        constexpr double K = 12.0;
+    {   // Knee "inf" (Clean) medido en el compresor de un channel strip con la rodilla al maximo (ratios 2/4/10/1000, umbral -30): la compresion empieza en
+        // el umbral y la pendiente de la curva pasa de 1 a 1/ratio de forma exponencial con el nivel sobre el umbral; la constante T depende de la ratio
+        // (error maximo 0.23 dB frente a las 4 curvas medidas). No hay rodilla dura.
         const double over = x - s.thr;
         if (over <= 0.0) return 0.0;
-        const double Rt = std::max (1.0, s.ratio), oc = K * (Rt - 1.0);
-        const double out = over <= oc ? K * std::log (1.0 + over / K) : K * std::log (Rt) + (over - oc) / Rt;
+        const double Rt = std::max (1.0, s.ratio), T = 7.176 + 14.812 * std::pow (Rt, -1.472);
+        const double out = over / Rt + (1.0 - 1.0 / Rt) * T * (1.0 - std::exp (-over / T));
         return std::clamp (over - out, 0.0, std::max (0.0, s.range));
     }
     double R = std::max (1.0, s.ratio);

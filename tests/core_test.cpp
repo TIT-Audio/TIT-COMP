@@ -82,7 +82,13 @@ int main()
             check (g >= prev && slope >= prevSlope - 1.0e-9 && slope < 1.0, "knee inf pendiente creciente", slope, prevSlope);   // la pendiente de GR sube sin saltos y no pasa de 1
             prev = g; prevSlope = slope;
         }
-        check (titc::gainReductionDb (-20.0, s) > 2.6 && titc::gainReductionDb (-20.0, s) < 2.9, "knee inf a 10 dB sobre el umbral", titc::gainReductionDb (-20.0, s), 2.73);
+        // curvas medidas (umbral -30, rodilla al maximo): {ratio, dB sobre el umbral, GR}
+        static const double m[][3] = { {2,8,0.97},{2,20,5.01},{2,26,7.51},{4,8,1.93},{4,20,9.01},{4,28,14.55},{10,8,2.59},{10,20,11.58},{1000,8,3.06},{1000,20,13.31},{1000,28,20.99} };
+        for (auto& r : m)
+        {
+            titc::Settings k = s; k.ratio = r[0]; k.range = 40.0; titc::constrain (k); titc::derive (k);
+            check (std::abs (titc::gainReductionDb (-30.0 + r[1], k) - r[2]) < 0.3, "knee inf vs curva medida", titc::gainReductionDb (-30.0 + r[1], k), r[2]);
+        }
         titc::Settings h = s; h.knee = 0.0; h.ratio = 4.0; titc::constrain (h);   // la rodilla normal no cambia
         check (std::abs (titc::gainReductionDb (-20.0, h) - 7.5) < 1.0e-9, "rodilla dura intacta", titc::gainReductionDb (-20.0, h), 7.5);
     }
