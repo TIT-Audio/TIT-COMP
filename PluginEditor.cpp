@@ -351,9 +351,9 @@ void TitCompEditor::configureSlots (int mode)
             case 4: k.s.textFromValueFunction = [] (double db) { return juce::String (juce::jlimit (0.0, 100.0, (db + 24.0) / 48.0 * 100.0), 0); }; break;
             case 5: k.s.textFromValueFunction = [] (double ms) { return juce::String (ms / 1000.0, 1) + " s"; }; break;
             case 7: k.s.textFromValueFunction = [] (double a)
-                    {   // Attack del MU (3 posiciones medidas)
-                        static const char* txt[] = { "1 (0.3 ms)", "2 (0.7 ms)", "3 (24 ms)" };
-                        return juce::String (txt[juce::jlimit (0, 2, juce::roundToInt (a))]); }; break;
+                    {   // Attack del MU (5 posiciones medidas)
+                        static const char* txt[] = { "1 (0.3 ms)", "2 (0.5 ms)", "3 (25 ms)", "4 (24 ms)", "5 (30 ms)" };
+                        return juce::String (txt[juce::jlimit (0, 4, juce::roundToInt (a))]); }; break;
             case 8: k.s.textFromValueFunction = [] (double r)
                     {   // Recovery del MU (5 posiciones medidas, rampa lineal)
                         static const char* txt[] = { "1 (31 dB/s)", "2 (15 dB/s)", "3 (7.3 dB/s)", "4 (3.6 dB/s)", "5 (1.8 dB/s)" };

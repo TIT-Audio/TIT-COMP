@@ -70,7 +70,7 @@ inline void constrain (Settings& s) noexcept
             s.attackMs = 10.0; s.releaseMs = 1500.0; s.ratio = 3.0; s.knee = 12.0; s.holdMs = 0.0; break;
         case MU:
             s.attackMs = 1.0; s.releaseMs = 500.0; s.ratio = 2.0; s.knee = 20.0; s.holdMs = 0.0;
-            s.muTrim = std::clamp (s.muTrim, -24.0, 24.0); s.muThr = std::clamp (s.muThr, 0.0, 10.0); s.muAtt = std::clamp (std::round (s.muAtt), 0.0, 2.0);
+            s.muTrim = std::clamp (s.muTrim, -24.0, 24.0); s.muThr = std::clamp (s.muThr, 0.0, 10.0); s.muAtt = std::clamp (std::round (s.muAtt), 0.0, 4.0);
             s.muRec = std::clamp (std::round (s.muRec), 0.0, 4.0); s.muMk = std::clamp (s.muMk, 0.0, 19.0);
             s.muFilt = s.muFilt < 25.0 ? 0.0 : std::clamp (std::round (s.muFilt / 50.0) * 50.0, 50.0, 250.0); break;
         case VARI:
@@ -295,11 +295,13 @@ inline Coefs makeCoefs (const Settings& s, double fs) noexcept
     }
     if (s.mode == MU)
     {   // TIT MU medido (tono -6 dBFS tras -60 dBFS, sin contaminar):
-        // Attack pos. 0: <1 ms; pos. 1: ~1 ms; pos. 2: 31 % inmediato + cola de ~36 ms (63 % a los ~24 ms)
+        // Attack: 5 posiciones medidas. Pos. 1-2: casi inmediatas (<1 ms); pos. 3-5: parte rapida (1-2 ms) + cola de ~46 ms (63 % a los ~25-30 ms)
         // Recovery: 5 posiciones, rampa lineal de 31 / 15.4 / 7.3 / 3.65 / 1.8 dB/s con una pequena espera inicial (30/45/15/100/400 ms)
-        static const double wf[] = { 1.0, 1.0, 0.31 }, tauF[] = { 0.3, 0.65, 0.5 }, tauS[] = { 1.0, 1.0, 36.0 };
+        static const double wf[]   = { 1.0, 0.78, 0.36, 0.41, 0.37 },
+                            tauF[] = { 0.4, 0.3,  1.7,  1.5,  1.2 },
+                            tauS[] = { 1.0, 1.75, 46.6, 46.8, 45.3 };
         static const double rate[] = { 31.0, 15.4, 7.3, 3.65, 1.8 }, holdMs[] = { 30.0, 45.0, 15.0, 100.0, 400.0 };
-        const int a = (int) std::clamp (std::round (s.muAtt), 0.0, 2.0), r = (int) std::clamp (std::round (s.muRec), 0.0, 4.0);
+        const int a = (int) std::clamp (std::round (s.muAtt), 0.0, 4.0), r = (int) std::clamp (std::round (s.muRec), 0.0, 4.0);
         c.mu = true; c.wFast = wf[a];
         c.aA = std::exp (-1.0 / (tauF[a] * 0.001 * fs));
         c.aAs = std::exp (-1.0 / (tauS[a] * 0.001 * fs));
