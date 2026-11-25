@@ -72,6 +72,7 @@ private:
 
     juce::AudioBuffer<float> scBuf;
     float lastOutGain = 1.f;
+    int lastMode = -1;   // para unificar el estado de la balistica al cambiar de modo (sin saltos)
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TitCompProcessor)
 };

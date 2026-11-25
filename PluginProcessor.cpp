@@ -216,6 +216,11 @@ void TitCompProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Mid
     analyzerPre.push (main.getReadPointer (0), numCh > 1 ? main.getReadPointer (1) : main.getReadPointer (0), total);
 
     const Settings s = readSettings();
+    if (s.mode != lastMode)
+    {   // al cambiar de modo, las dos ramas de la balistica parten del mismo valor y la memoria se reinicia: la reduccion no salta
+        for (auto& b : bal) { b.ef = b.es = b.e; b.mem = 0.0; b.hold = 0; }
+        lastMode = s.mode;
+    }
     const bool msMode = P (apvts, "ms") > 0.5f;
     const bool listen = P (apvts, "sclisten") > 0.5f;
     const bool freeMode = (s.mode == Clean), mixMode = (s.mode == Clean || s.mode == VARI || s.mode == VCA || s.mode == MU || s.mode == DXX);
