@@ -138,8 +138,11 @@ void TitCompProcessor::processCore (juce::dsp::AudioBlock<float>& m, juce::dsp::
 
     if (s.mode == MU && s.muFilt >= 25.0)
     {   // filtro de sidechain de TIT MU (paso alto de 12 dB/oct)
-        muHp.set (titq::Biquad::highpass (osFs, s.muFilt, 0.7071));
-        for (int ch = 0; ch < numCh; ++ch) muHp.process (sc.getChannelPointer ((size_t) ch), n, ch);
+        // medido en un compresor variable-mu de referencia (Filter 100 y 250): ~15 dB/oct, equivalente a un 2o orden Butterworth con corte ~3.4 x el valor del mando (potencia 0.76) mas un 1er orden a 100 Hz
+        const double fc = std::min (0.45 * osFs, 340.0 * std::pow (s.muFilt / 100.0, 0.76));
+        muHp.set (titq::Biquad::highpass (osFs, fc, 0.7071));
+        muHp1.set (titq::Biquad::firstOrderHP (osFs, 100.0));
+        for (int ch = 0; ch < numCh; ++ch) { muHp.process (sc.getChannelPointer ((size_t) ch), n, ch); muHp1.process (sc.getChannelPointer ((size_t) ch), n, ch); }
     }
 
     const auto dt = detectorFor (s.mode);
