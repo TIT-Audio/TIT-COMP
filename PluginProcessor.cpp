@@ -100,7 +100,8 @@ void TitCompProcessor::setOversampling (int idx)
 
 void TitCompProcessor::updateLatency()
 {
-    const int look = P (apvts, "mode") < 0.5f ? juce::roundToInt (P (apvts, "look") * 0.001 * currentSampleRate.load()) : 0;
+    const int md = (int) std::lround (P (apvts, "mode"));
+    const int look = (md == Clean || md == DIG) ? juce::roundToInt (P (apvts, "look") * 0.001 * currentSampleRate.load()) : 0;
     const int total = juce::roundToInt (osLatency) + look;
     if (total != lastLatency) { lastLatency = total; setLatencySamples (total); }
 }
