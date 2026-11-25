@@ -81,9 +81,9 @@ inline void derive (Settings& s) noexcept
         case FETB:
         {   // FET: Input 0..48 (atenuación; más bajo = más compresión) y Output 0..48 (más bajo = más fuerte, ~0.83 dB por unidad)
             static const double ix[] = { 0.0, 12.0, 28.0, 36.0, 48.0 }, iy[] = { -60.0, -42.0, -30.0, -14.2, -2.0 };
-            const double x = std::clamp (s.fin, 0.0, 48.0); int i = 1; while (x > ix[i]) ++i;
+            const double x = 48.0 - std::clamp (s.fin, 0.0, 48.0); int i = 1; while (x > ix[i]) ++i;   // Input: derecha = mas entrada = mas compresion
             s.thr = iy[i - 1] + (x - ix[i - 1]) / (ix[i] - ix[i - 1]) * (iy[i] - iy[i - 1]);
-            s.makeupDb = (19.0 - s.fout) * 0.834; break;
+            s.makeupDb = (s.fout - 29.0) * 0.834; break;   // Output: derecha = mas nivel
         }
         case OPTO:
         {   // opto: Peak Reduction (medido en 35/50/62; en 0 no comprime) y Gain independiente de la detección:
@@ -99,9 +99,10 @@ inline void derive (Settings& s) noexcept
         case VARI:
         {   // compresor variable-mu: Input Gain = atenuación 1 dB por unidad (0..20); Threshold 0..10 con curva medida; +1.58 dB de ganancia fija
             static const double tx[] = { 0.0, 2.5, 5.0, 7.5, 10.0 }, ty[] = { 3.0, -13.8, -22.0, -24.1, -27.0 };
+            const double att = 20.0 - std::clamp (s.vin, 0.0, 20.0);   // Input Gain: derecha = mas entrada
             const double x = std::clamp (s.vthr, 0.0, 10.0); int i = 1; while (x > tx[i]) ++i;
-            s.thr = ty[i - 1] + (x - tx[i - 1]) / (tx[i] - tx[i - 1]) * (ty[i] - ty[i - 1]) + s.vin;
-            s.makeupDb = 1.58 + std::clamp (s.outParam, -20.0, 20.0) - s.vin; break;
+            s.thr = ty[i - 1] + (x - tx[i - 1]) / (tx[i] - tx[i - 1]) * (ty[i] - ty[i - 1]) + att;
+            s.makeupDb = 1.58 + std::clamp (s.outParam, -20.0, 20.0) - att; break;
         }
         default: break;
     }

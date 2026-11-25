@@ -283,9 +283,9 @@ void TitCompEditor::applyModePreset (int mode)
     setParamGesture ("out", 0.f);
     if (mode == Clean) { setParamGesture ("thr", -18.f); return; }
     if (mode == VCA)  setParamGesture ("thr", -10.f);
-    if (mode == FET || mode == FETB) { setParamGesture ("fin", 36.f); setParamGesture ("fout", 19.f); }
+    if (mode == FET || mode == FETB) { setParamGesture ("fin", 12.f); setParamGesture ("fout", 29.f); }
     if (mode == OPTO) { setParamGesture ("pr", 40.f); setParamGesture ("gain", 26.f); }
-    if (mode == VARI) { setParamGesture ("vin", 0.f); setParamGesture ("vthr", 8.f); setParamGesture ("mix", 100.f); }
+    if (mode == VARI) { setParamGesture ("vin", 20.f); setParamGesture ("vthr", 8.f); setParamGesture ("mix", 100.f); }
     const auto& p = presets[mode];
     setParamGesture ("ratio",   (float) p.ratio);
     setParamGesture ("knee",    (float) p.knee);
@@ -330,8 +330,8 @@ void TitCompEditor::configureSlots (int mode)
         k.s.setTextBoxIsEditable (sp.fmt == 0);
         switch (sp.fmt)
         {
-            case 1: k.s.textFromValueFunction = [] (double ms) { const double u = juce::jlimit (0.0, 1.0, (ms - 0.02) / 0.78); return juce::String (7.0 - 6.0 * u, 1); }; break;
-            case 2: k.s.textFromValueFunction = [] (double ms) { const double u = std::log (juce::jlimit (50.0, 1100.0, ms) / 50.0) / std::log (22.0); return juce::String (7.0 - 6.0 * u, 1); }; break;
+            case 1: k.s.textFromValueFunction = [] (double ms) { return juce::String (juce::roundToInt (juce::jlimit (0.02, 0.8, ms) * 1000.0)) + " us"; }; break;
+            case 2: k.s.textFromValueFunction = [] (double ms) { return juce::String (juce::roundToInt (juce::jlimit (50.0, 1100.0, ms))) + " ms"; }; break;
             case 3: k.s.textFromValueFunction = [] (double ms)
                     { int best = 0; for (int j = 1; j < 6; ++j) if (std::abs (std::log (ms / tc[j])) < std::abs (std::log (ms / tc[best]))) best = j; return juce::String (best + 1); }; break;
             case 4: k.s.textFromValueFunction = [] (double db) { return juce::String (juce::jlimit (0.0, 100.0, (db + 24.0) / 48.0 * 100.0), 0); }; break;

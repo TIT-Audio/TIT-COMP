@@ -53,11 +53,11 @@ juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
     layout.add (makeFloat ("attack",  "Attack",     0.01f, 250.f,  10.f, 5.f,   "ms",  2, 0.f));
     layout.add (makeFloat ("release", "Release",    5.f, 5000.f,  120.f, 150.f, "ms",  2, 0.f));
     layout.add (std::make_unique<juce::AudioParameterBool> (juce::ParameterID { "autorel", 1 }, "Auto Release", false));
-    layout.add (makeFloat ("fin",     "FET Input",   0.f, 48.f,   36.f, 0.f,   "",    1, 0.1f));
-    layout.add (makeFloat ("fout",    "FET Output",  0.f, 48.f,   19.f, 0.f,   "",    1, 0.1f));
+    layout.add (makeFloat ("fin",     "FET Input",   0.f, 48.f,   12.f, 0.f,   "",    1, 0.1f));
+    layout.add (makeFloat ("fout",    "FET Output",  0.f, 48.f,   29.f, 0.f,   "",    1, 0.1f));
     layout.add (makeFloat ("pr",      "Peak Reduction", 0.f, 100.f, 40.f, 0.f,  "",    1, 0.1f));
     layout.add (makeFloat ("gain",    "Opto Gain", 0.f, 100.f, 26.f, 0.f,  "",    1, 0.1f));
-    layout.add (makeFloat ("vin",     "variable-mu Input Gain", 0.f, 20.f, 0.f, 0.f, "", 1, 0.1f));
+    layout.add (makeFloat ("vin",     "variable-mu Input Gain", 0.f, 20.f, 20.f, 0.f, "", 1, 0.1f));
     layout.add (makeFloat ("vthr",    "variable-mu Threshold",  0.f, 10.f, 8.f, 0.f, "", 2, 0.01f));
     layout.add (makeFloat ("hold",    "Hold",       0.f, 500.f,     0.f, 0.f,   "ms",  3, 0.1f));
     layout.add (makeFloat ("look",    "Lookahead",  0.f, 20.f,      0.f, 0.f,   "ms",  3, 0.1f));
