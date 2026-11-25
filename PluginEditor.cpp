@@ -681,7 +681,7 @@ void TitCompEditor::paint (juce::Graphics& g)
     {
         const auto m = meterArea();
         struct Bar { const char* name; float v, lo, hi; bool isGr; };
-        const Bar bars[3] = { { "IN", inShown, -60.f, 0.f, false }, { "GR", grShown, 0.f, 24.f, true }, { "OUT", outShown, -60.f, 0.f, false } };
+        const Bar bars[3] = { { "IN", inShown, -60.f, 0.f, false }, { "GR", grShown, 0.f, 10.f, true }, { "OUT", outShown, -60.f, 0.f, false } };
         const float rowH = 38.f * s, gap = 3.f * s;
         for (int i = 0; i < 3; ++i)
         {
@@ -696,15 +696,16 @@ void TitCompEditor::paint (juce::Graphics& g)
             const float frac = juce::jlimit (0.f, 1.f, (b.v - b.lo) / (b.hi - b.lo));
             {
                 const auto fr = r.withWidth (juce::jmax (0.f, r.getWidth() * frac));
-                g.setGradientFill (juce::ColourGradient (kPink, r.getX(), 0.f, kPink2, r.getRight(), 0.f, false));
+                if (b.isGr) g.setGradientFill (juce::ColourGradient (juce::Colour (0xffc01626), r.getX(), 0.f, juce::Colour (0xffff3b3b), r.getRight(), 0.f, false));
+                else        g.setGradientFill (juce::ColourGradient (kPink, r.getX(), 0.f, kPink2, r.getRight(), 0.f, false));
                 g.fillRoundedRectangle (fr, 4.f * s);
             }
             g.setColour (kPink2.withAlpha (0.8f));
             g.drawRoundedRectangle (r, 4.f * s, 1.f);
             g.setFont (9.f * s);
-            const float marks[] = { 0.f, 3.f, 6.f, 9.f, 12.f, 15.f, 18.f, 21.f, 24.f };
+            const float marks[] = { 0.f, 1.f, 2.f, 3.f, 4.f, 5.f, 6.f, 7.f, 8.f, 9.f, 10.f };
             const float marksDb[] = { -60.f, -48.f, -36.f, -24.f, -18.f, -12.f, -6.f, -3.f, 0.f };
-            for (int k = 0; k < 9; ++k)
+            for (int k = 0; k < (b.isGr ? 11 : 9); ++k)
             {
                 const float v = b.isGr ? marks[k] : marksDb[k];
                 const float x = r.getX() + r.getWidth() * (v - b.lo) / (b.hi - b.lo);
