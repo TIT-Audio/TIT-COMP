@@ -37,4 +37,4 @@ Medidor horizontal IN / GR / OUT arriba y EQ del sidechain debajo.
 
 ## Nota
 
-TIT COMP emula el comportamiento dinamico (curva, ataque, recuperacion) de cada compresor, medido en un DAW con los plugins reales. Es compresion digital limpia: no anade saturacion ni color.
+TIT COMP emula el comportamiento dinamico (curva, ataque, recuperacion) de cada compresor, medido con compresores de referencia. Es compresion digital limpia: no anade saturacion ni color.
