@@ -286,7 +286,7 @@ void TitCompEditor::applyModePreset (int mode)
     if (mode == VCA)  setParamGesture ("thr", -10.f);
     if (mode == FET || mode == FETB) { setParamGesture ("fin", 12.f); setParamGesture ("fout", 29.f); }
     if (mode == OPTO) { setParamGesture ("pr", 40.f); setParamGesture ("gain", 26.f); }
-    if (mode == MU) { setParamGesture ("mutrim", 0.f); setParamGesture ("muthr", 8.f); setParamGesture ("muatt", 5.f); setParamGesture ("murec", 5.f);
+    if (mode == MU) { setParamGesture ("mutrim", 0.f); setParamGesture ("muthr", 8.f); setParamGesture ("muatt", 1.f); setParamGesture ("murec", 2.f);
                       setParamGesture ("mumk", 0.f); setParamGesture ("mufilt", 0.f); setParamGesture ("mix", 100.f); setParamGesture ("link", 100.f); }
     if (mode == VARI) { setParamGesture ("vin", 20.f); setParamGesture ("vthr", 8.f); setParamGesture ("mix", 100.f); }
     const auto& p = presets[mode];
@@ -342,13 +342,13 @@ void TitCompEditor::configureSlots (int mode)
             case 4: k.s.textFromValueFunction = [] (double db) { return juce::String (juce::jlimit (0.0, 100.0, (db + 24.0) / 48.0 * 100.0), 0); }; break;
             case 5: k.s.textFromValueFunction = [] (double ms) { return juce::String (ms / 1000.0, 1) + " s"; }; break;
             case 7: k.s.textFromValueFunction = [] (double a)
-                    {   // Attack del MU: constante de tiempo de la etapa lenta (0 rapido .. 10 lento)
-                        const double ms = a <= 5.0 ? 0.7 * std::pow (45.0 / 0.7, a / 5.0) : 45.0 * std::pow (120.0 / 45.0, (a - 5.0) / 5.0);
-                        return juce::String (a, 1) + " (" + (ms < 10.0 ? juce::String (ms, 1) : juce::String (juce::roundToInt (ms))) + " ms)"; }; break;
+                    {   // Attack del MU (3 posiciones medidas)
+                        static const char* txt[] = { "1 (0.3 ms)", "2 (0.7 ms)", "3 (24 ms)" };
+                        return juce::String (txt[juce::jlimit (0, 2, juce::roundToInt (a))]); }; break;
             case 8: k.s.textFromValueFunction = [] (double r)
-                    {   // Recovery del MU: rampa de recuperacion en dB por segundo (0 rapido .. 10 lento)
-                        const double v = r <= 5.0 ? 30.0 * std::pow (7.0 / 30.0, r / 5.0) : 7.0 * std::pow (1.8 / 7.0, (r - 5.0) / 5.0);
-                        return juce::String (r, 1) + " (" + juce::String (v, 1) + " dB/s)"; }; break;
+                    {   // Recovery del MU (5 posiciones medidas, rampa lineal)
+                        static const char* txt[] = { "1 (31 dB/s)", "2 (15 dB/s)", "3 (7.3 dB/s)", "4 (3.6 dB/s)", "5 (1.8 dB/s)" };
+                        return juce::String (txt[juce::jlimit (0, 4, juce::roundToInt (r))]); }; break;
             case 6: k.s.textFromValueFunction = [] (double r) { return juce::String (r, 0) + ":1"; }; break;
             default: break;
         }

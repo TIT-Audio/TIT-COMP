@@ -20,8 +20,8 @@ struct Settings
     double gain = 26.0;               // opto: Gain 0..100
     double pr = 40.0;                 // opto: Peak Reduction 0..100
     double vin = 0.0, vthr = 10.0;    // variable-mu: Input Gain (atenuación 0..20) y Threshold 0..10
-    // TIT MU (variable-mu de dos canales medido): Input Trim dB, Threshold 0..10, Attack 0..10 (0 rapido), Recovery 0..10 (0 rapido), Make Up 0..19 dB, Filtro sidechain Hz (0 = off)
-    double muTrim = 0.0, muThr = 10.0, muAtt = 5.0, muRec = 5.0, muMk = 0.0, muFilt = 0.0;
+    // TIT MU (variable-mu de dos canales medido): Input Trim dB, Threshold 0..10, Attack posicion 0..2 (3 posiciones), Recovery posicion 0..4 (5 posiciones), Make Up 0..19 dB, Filtro sidechain Hz (0 = off)
+    double muTrim = 0.0, muThr = 10.0, muAtt = 1.0, muRec = 2.0, muMk = 0.0, muFilt = 0.0;
     double outParam = 0.0;            // mando Out en dB (make-up / Output / Gain según el modo)
     double makeupDb = 0.0;            // resultado: ganancia de salida que se aplica
 };
@@ -68,8 +68,8 @@ inline void constrain (Settings& s) noexcept
             s.attackMs = 10.0; s.releaseMs = 1500.0; s.ratio = 3.0; s.knee = 12.0; s.holdMs = 0.0; break;
         case MU:
             s.attackMs = 1.0; s.releaseMs = 500.0; s.ratio = 2.0; s.knee = 20.0; s.holdMs = 0.0;
-            s.muTrim = std::clamp (s.muTrim, -24.0, 24.0); s.muThr = std::clamp (s.muThr, 0.0, 10.0); s.muAtt = std::clamp (s.muAtt, 0.0, 10.0);
-            s.muRec = std::clamp (s.muRec, 0.0, 10.0); s.muMk = std::clamp (s.muMk, 0.0, 19.0);
+            s.muTrim = std::clamp (s.muTrim, -24.0, 24.0); s.muThr = std::clamp (s.muThr, 0.0, 10.0); s.muAtt = std::clamp (std::round (s.muAtt), 0.0, 2.0);
+            s.muRec = std::clamp (std::round (s.muRec), 0.0, 4.0); s.muMk = std::clamp (s.muMk, 0.0, 19.0);
             s.muFilt = s.muFilt < 25.0 ? 0.0 : std::clamp (std::round (s.muFilt / 50.0) * 50.0, 50.0, 250.0); break;
         case VARI:
             s.attackMs = 1.5; s.releaseMs = snapLog (s.releaseMs, variTc, 6); s.ratio = 6.5; s.knee = 9.0; s.holdMs = 0.0; break;
@@ -290,15 +290,17 @@ inline Coefs makeCoefs (const Settings& s, double fs) noexcept
         }
     }
     if (s.mode == MU)
-    {   // TIT MU medido: ataque en dos etapas (rapida ~0.7 ms + cola) y recuperacion en rampa lineal de dB/s
-        const double a = std::clamp (s.muAtt, 0.0, 10.0);
-        const double wf = a <= 5.0 ? 1.0 + (0.18 - 1.0) * a / 5.0 : 0.18 + (0.73 - 0.18) * (a - 5.0) / 5.0;
-        const double tauSlow = a <= 5.0 ? 0.7 * std::pow (45.0 / 0.7, a / 5.0) : 45.0 * std::pow (120.0 / 45.0, (a - 5.0) / 5.0);
-        const double r = std::clamp (s.muRec, 0.0, 10.0);
-        c.mu = true; c.wFast = wf;
-        c.aA = std::exp (-1.0 / (0.0007 * fs));
-        c.aAs = std::exp (-1.0 / (tauSlow * 0.001 * fs));
-        c.muRate = r <= 5.0 ? 30.0 * std::pow (7.0 / 30.0, r / 5.0) : 7.0 * std::pow (1.8 / 7.0, (r - 5.0) / 5.0);
+    {   // TIT MU medido (tono -6 dBFS tras -60 dBFS, sin contaminar):
+        // Attack pos. 0: <1 ms; pos. 1: ~1 ms; pos. 2: 31 % inmediato + cola de ~36 ms (63 % a los ~24 ms)
+        // Recovery: 5 posiciones, rampa lineal de 31 / 15.4 / 7.3 / 3.65 / 1.8 dB/s con una pequena espera inicial (30/45/15/100/400 ms)
+        static const double wf[] = { 1.0, 1.0, 0.31 }, tauF[] = { 0.3, 0.65, 0.5 }, tauS[] = { 1.0, 1.0, 36.0 };
+        static const double rate[] = { 31.0, 15.4, 7.3, 3.65, 1.8 }, holdMs[] = { 30.0, 45.0, 15.0, 100.0, 400.0 };
+        const int a = (int) std::clamp (std::round (s.muAtt), 0.0, 2.0), r = (int) std::clamp (std::round (s.muRec), 0.0, 4.0);
+        c.mu = true; c.wFast = wf[a];
+        c.aA = std::exp (-1.0 / (tauF[a] * 0.001 * fs));
+        c.aAs = std::exp (-1.0 / (tauS[a] * 0.001 * fs));
+        c.muRate = rate[r];
+        c.holdSamples = (int) std::lround (holdMs[r] * 0.001 * fs);
     }
     return c;
 }
@@ -309,8 +311,11 @@ inline double step (Ballistics& b, double g, const Coefs& c) noexcept
     if (c.mu)
     {
         const double dn = c.muRate / c.fs;
-        if (g > b.ef) b.ef = c.aA * b.ef + (1.0 - c.aA) * g; else b.ef = std::max (g, b.ef - dn);
-        if (g > b.es) b.es = c.aAs * b.es + (1.0 - c.aAs) * g; else b.es = std::max (g, b.es - dn);
+        if (g >= b.e - 1.0e-6) b.hold = c.holdSamples;
+        const bool waiting = (g < b.e - 1.0e-6) && b.hold > 0;
+        if (waiting) --b.hold;
+        if (g > b.ef) b.ef = c.aA * b.ef + (1.0 - c.aA) * g; else if (! waiting) b.ef = std::max (g, b.ef - dn);
+        if (g > b.es) b.es = c.aAs * b.es + (1.0 - c.aAs) * g; else if (! waiting) b.es = std::max (g, b.es - dn);
         b.e = c.wFast * b.ef + (1.0 - c.wFast) * b.es;
         return b.e;
     }
