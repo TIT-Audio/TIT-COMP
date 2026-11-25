@@ -71,18 +71,20 @@ int main()
         check (std::abs (s.makeupDb) < 1.0e-9, "MU trim sin ganancia", s.makeupDb, 0.0);
     }
 
-    // ---- 2c) Clean con Knee "inf" (31): la compresion empieza ~60 dB por debajo del umbral y crece sin saltos ----
+    // ---- 2c) Clean con Knee "inf" (31): la compresion empieza en el umbral y la ratio instantanea crece con el nivel ----
     {
-        titc::Settings s; s.mode = titc::Clean; s.thr = -18.0; s.ratio = 4.0; s.knee = 31.0; titc::constrain (s); titc::derive (s);
-        double prev = 0.0;
-        for (double x = -90.0; x <= 0.0; x += 1.0)
+        titc::Settings s; s.mode = titc::Clean; s.thr = -30.0; s.ratio = 1000.0; s.knee = 31.0; titc::constrain (s); titc::derive (s);
+        check (titc::gainReductionDb (-30.0, s) < 1.0e-9 && titc::gainReductionDb (-31.0, s) < 1.0e-9, "knee inf sin compresion bajo el umbral", titc::gainReductionDb (-31.0, s), 0.0);
+        double prev = 0.0, prevSlope = 0.0;
+        for (double x = -30.0; x <= 0.0; x += 1.0)
         {
-            const double g = titc::gainReductionDb (x, s);
-            check (g >= prev - 1.0e-9 && g - prev < 1.0, "knee inf monotona", g, prev);
-            prev = g;
+            const double g = titc::gainReductionDb (x, s), slope = g - prev;
+            check (g >= prev && slope >= prevSlope - 1.0e-9 && slope < 1.0, "knee inf pendiente creciente", slope, prevSlope);   // la pendiente de GR sube sin saltos y no pasa de 1
+            prev = g; prevSlope = slope;
         }
-        check (titc::gainReductionDb (-80.0, s) < 0.01, "knee inf sin compresion lejos", titc::gainReductionDb (-80.0, s), 0.0);
-        check (titc::gainReductionDb (-18.0, s) > 8.0, "knee inf comprime en el umbral", titc::gainReductionDb (-18.0, s), 8.0);
+        check (titc::gainReductionDb (-20.0, s) > 2.6 && titc::gainReductionDb (-20.0, s) < 2.9, "knee inf a 10 dB sobre el umbral", titc::gainReductionDb (-20.0, s), 2.73);
+        titc::Settings h = s; h.knee = 0.0; h.ratio = 4.0; titc::constrain (h);   // la rodilla normal no cambia
+        check (std::abs (titc::gainReductionDb (-20.0, h) - 7.5) < 1.0e-9, "rodilla dura intacta", titc::gainReductionDb (-20.0, h), 7.5);
     }
 
     // ---- 3) DXX TIT (compresor VCA RMS de referencia, medido): efectiva de cada posicion de Compression y ataque de ~16 ms ----
