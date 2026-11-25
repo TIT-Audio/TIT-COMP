@@ -329,7 +329,7 @@ static std::vector<SlotSpec> slotSpecs (int mode)
         case MU:   return { { "mutrim", "Input Trim", 0 }, { "muthr", "Threshold", 0 }, { "muatt", "Attack", 7 }, { "murec", "Recovery", 8 },
                             { "mumk", "Make Up", 0 }, { "mufilt", "Filter", 0 }, { "mix", "Mix", 0 }, { "link", "Stereo Link", 0 } };
         case DXX:  return { { "thr", "Threshold", 0 }, { "dxcomp", "Compression", 9 }, { "out", "Output Gain", 0 }, { "mix", "Mix", 0 } };
-        default:   return { { "thr", "Threshold", 0 }, { "ratio", "Ratio", 0 }, { "knee", "Knee", 0 }, { "attack", "Attack", 0 },
+        default:   return { { "thr", "Threshold", 0 }, { "ratio", "Ratio", 0 }, { "knee", "Knee", 10 }, { "attack", "Attack", 0 },
                             { "release", "Release", 0 }, { "hold", "Hold", 0 }, { "look", "Lookahead", 0 }, { "range", "Range", 0 } };
     }
 }
@@ -351,7 +351,7 @@ void TitCompEditor::configureSlots (int mode)
         k.att = std::make_unique<SliderAtt> (proc.apvts, sp.id, k.s);
         k.l.setText (sp.label, juce::dontSendNotification);
         k.s.setVisible (true); k.l.setVisible (true);
-        k.s.setTextBoxIsEditable (sp.fmt == 0);
+        k.s.setTextBoxIsEditable (sp.fmt == 0 || sp.fmt == 10);
         {   // recorrido de la ruleta = rango real del original en cada modo
             const juce::String id (sp.id);
             k.s.lo = k.s.hi = -1.0;
@@ -378,6 +378,7 @@ void TitCompEditor::configureSlots (int mode)
                     {   // Recovery del MU (5 posiciones medidas, rampa lineal)
                         static const char* txt[] = { "1 (31 dB/s)", "2 (15 dB/s)", "3 (7.3 dB/s)", "4 (3.6 dB/s)", "5 (1.8 dB/s)" };
                         return juce::String (txt[juce::jlimit (0, 4, juce::roundToInt (r))]); }; break;
+            case 10: k.s.textFromValueFunction = [] (double w) { return w >= 30.95 ? juce::String ("inf") : juce::String (w, 1) + " dB"; }; break;
             case 9: k.s.textFromValueFunction = [] (double r) { return r >= 99.0 ? juce::String ("inf") : juce::String (r, 1) + ":1"; }; break;
             case 6: k.s.textFromValueFunction = [] (double r) { return juce::String (r, 0) + ":1"; }; break;
             default: break;

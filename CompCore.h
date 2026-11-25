@@ -137,6 +137,7 @@ inline void derive (Settings& s) noexcept
 inline double effectiveKnee (const Settings& s) noexcept
 {
     double w = std::max (0.0, s.knee);
+    if (s.mode == Clean && w >= 30.95) w = 120.0;   // Knee "inf" (Clean): rodilla tan ancha que la compresion empieza ~60 dB por debajo del umbral
     if (s.mode == OPTO) w = std::max (w, 10.0);
     if (s.mode == VARI) w = std::max (w, 9.0);   // variable-mu medido: umbral ~-27 dBFS, rodilla ~8-9 dB, ratio ~6.5
     return w;

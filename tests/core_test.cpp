@@ -71,6 +71,20 @@ int main()
         check (std::abs (s.makeupDb) < 1.0e-9, "MU trim sin ganancia", s.makeupDb, 0.0);
     }
 
+    // ---- 2c) Clean con Knee "inf" (31): la compresion empieza ~60 dB por debajo del umbral y crece sin saltos ----
+    {
+        titc::Settings s; s.mode = titc::Clean; s.thr = -18.0; s.ratio = 4.0; s.knee = 31.0; titc::constrain (s); titc::derive (s);
+        double prev = 0.0;
+        for (double x = -90.0; x <= 0.0; x += 1.0)
+        {
+            const double g = titc::gainReductionDb (x, s);
+            check (g >= prev - 1.0e-9 && g - prev < 1.0, "knee inf monotona", g, prev);
+            prev = g;
+        }
+        check (titc::gainReductionDb (-80.0, s) < 0.01, "knee inf sin compresion lejos", titc::gainReductionDb (-80.0, s), 0.0);
+        check (titc::gainReductionDb (-18.0, s) > 8.0, "knee inf comprime en el umbral", titc::gainReductionDb (-18.0, s), 8.0);
+    }
+
     // ---- 3) DXX TIT (compresor VCA RMS de referencia, medido): efectiva de cada posicion de Compression y ataque de ~16 ms ----
     {
         static const double pos[] = { 1.5, 3.0, 6.0, 100.0 }, g6[] = { 4.34, 8.14, 10.14, 12.03 };   // GR medida a -6 dBFS con el umbral por defecto
