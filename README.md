@@ -8,7 +8,7 @@ Compresor gratuito con sidechain interno y externo, EQ de 10 bandas en el sidech
 - **SC Listen** para oír el sidechain ya filtrado.
 - Oversampling Off / 2x / 4x / 8x. El plugin informa de su latencia al DAW.
 - Medidor de reducción de ganancia (GR).
-- Modos: Clean, **VCA TIT**, **FET TIT**, **FET TIT B**, **OP TIT**, **FAIR TIT**. Cada modo cambia el detector, la rodilla mínima y la balística (tiempos de ataque y liberación), con valores medidos sobre compresores reales (solo el comportamiento dinámico). FAIR TIT es un único modo: ataque fijo ~1.5 ms, rodilla ancha y liberación de una o dos etapas según el mando Release. Al elegir uno se cargan sus valores de partida, que luego se pueden mover.
+- Modos: Clean, **VCA TIT**, **FET TIT**, **FET TIT B**, **OP TIT**, **FAIR TIT**. Cada modo cambia el detector, la rodilla mínima y la balística (tiempos de ataque y liberación), con valores medidos sobre compresores reales (solo el comportamiento dinámico). FAIR TIT es un único modo: curva de ganancia por Input Gain y Threshold, ataque de dos constantes medido y liberación de una o dos etapas según el mando Time Constant. Al elegir uno se cargan sus valores de partida, que luego se pueden mover.
 
 ## Compilar
 Sube todos los archivos a la raíz del repositorio y `build.yml` a `.github/workflows/build.yml`. Añade el archivo `LICENSE` (AGPLv3). El workflow genera el artefacto `TITCOMP-all`.
@@ -37,4 +37,4 @@ Medidor horizontal IN / GR / OUT arriba y EQ del sidechain debajo.
 
 ## Nota
 
-TIT COMP emula el comportamiento dinamico (curva, ataque, recuperacion) de cada compresor, medido con compresores de referencia. Es compresion digital limpia: no anade saturacion ni color.
+TIT COMP emula el comportamiento dinamico (curva, ataque, recuperacion) de cada compresor, medido con compresores de referencia. Por defecto es compresion digital limpia. El interruptor **Color** (apagado de serie) anade la saturacion y el timbre medidos de cada modo (FAIR, FET, FET B, OP y DXX); VCA, MU y DIG no llevan color.
