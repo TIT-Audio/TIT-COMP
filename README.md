@@ -1,46 +1,50 @@
-# TIT COMP v0.1
+# TIT COMP
 
-Compresor gratuito con sidechain interno y externo, EQ de 10 bandas en el sidechain, oversampling hasta x8 y modos de carácter propio. Formatos: **VST3 (Windows y macOS)** y **AU (macOS)**. Sin AAX, sin Standalone.
+**Free compressor plugin (VST3 for Windows and macOS, AU for macOS)** with nine selectable behaviours, a 10-band sidechain EQ, oversampling up to 8x and a **Color** switch for saturation and tone. No registration, no ads, no limits.
 
-## Funciones
-- Threshold, Ratio, Knee, Attack, Release, Hold, Lookahead (hasta 20 ms), Range, Stereo Link, Mix y Output.
-- Sidechain interno o externo (una sola entrada externa por instancia) con **EQ de 10 bandas** (Bell, shelves, cortes y tilt). Un clic en la gráfica crea una banda; doble clic sobre una banda la enciende o apaga; clic derecho la borra.
-- **SC Listen** para oír el sidechain ya filtrado.
-- Oversampling Off / 2x / 4x / 8x. El plugin informa de su latencia al DAW.
-- Medidor de reducción de ganancia (GR).
-- Modos: Clean, **VCA TIT**, **FET TIT**, **FET TIT B**, **OP TIT**, **FAIR TIT**. Cada modo cambia el detector, la rodilla mínima y la balística (tiempos de ataque y liberación), con valores medidos sobre compresores reales (solo el comportamiento dinámico). FAIR TIT es un único modo: curva de ganancia por Input Gain y Threshold, ataque de dos constantes medido y liberación de una o dos etapas según el mando Time Constant. Al elegir uno se cargan sus valores de partida, que luego se pueden mover.
+Each mode copies the *dynamic behaviour* (static curve, attack, release, memory) of a type of reference compressor. Every number was fitted to measurements made on real plugins, using test signals. Nothing is copied from anyone's code, graphics or sound files.
 
-## Compilar
-Sube todos los archivos a la raíz del repositorio y `build.yml` a `.github/workflows/build.yml`. Añade el archivo `LICENSE` (AGPLv3). El workflow genera el artefacto `TITCOMP-all`.
-macOS sin firmar: `xattr -cr "TIT COMP.vst3"` (o .component).
+## Modes
+| Mode | Character |
+|---|---|
+| **Clean** | Transparent digital compressor, every control free. |
+| **VCA TIT** | Fast, punchy bus-style VCA compressor. Attack, release (with Auto), ratio 2/4/10, make-up. |
+| **FET TIT / FET TIT B** | Very fast FET-style compressors. Input, Output, Attack 1–7, Release 1–7, ratio 4/8/12/20. |
+| **OP TIT** | Optical compressor with a two-stage release. Peak Reduction and Gain. |
+| **FAIR TIT** | Variable-mu compressor. Input Gain, Threshold, Time Constant 1–6, Output, Mix. |
+| **TIT MU** | Mu-style compressor with its own sidechain filter, attack and recovery steps. |
+| **DXX TIT** | RMS VCA compressor with level-dependent attack. |
+| **TIT DIGITAL** | Digital compressor with an adjustable (up to infinite) knee. |
 
-## Licencia
-TIT COMP es gratuito y se distribuye bajo la licencia GNU AGPLv3 (ver el archivo LICENSE).
-Está construido con JUCE 8. El código fuente está disponible en este repositorio.
+Selecting a mode loads its starting values and shows only the controls that mode really has.
 
-## Límites por modo (v0.4)
-Cada modo respeta al compresor original medido: solo se pueden mover sus mandos y con sus valores.
-- VCA TIT: ataque 0.1/0.3/1/3/10/30 ms, release 0.1/0.3/0.6/1.2 s + botón Auto Release, ratio 2/4/10, rodilla fija.
-- FET TIT / FET TIT B: ataque 0.02–0.8 ms, release 50–1100 ms, ratio 4/8/12/20, rodilla fija.
-- OP TIT: sin ataque, release ni ratio.
-- FAIR TIT: ataque fijo; release = 6 posiciones de Time Constant; ratio y rodilla fijos.
+## Features
+- Threshold, ratio, knee, attack, release, hold, lookahead (up to 20 ms), range, stereo link, mix and output.
+- Internal or external sidechain with a **10-band EQ** (bell, shelves, cuts, tilt). Click the graph to add a band, double-click to switch it on or off, right-click to delete it. **SC Listen** lets you hear the filtered sidechain.
+- Oversampling Off / 2x / 4x / 8x. The plugin reports its latency to the host.
+- Input / gain reduction / output meters.
+- **Color** (on by default): the saturation and tone measured for FAIR, FET, FET B, OP and DXX. VCA, MU and DIGITAL have none.
+- Presets, with save/load to any folder.
 
-## Controles por modo (v0.5)
-Cada modo muestra solo los mandos de su compresor original:
-- VCA TIT: Threshold, Ratio, Attack, Release (+Auto), Make-up.
-- FET TIT / FET TIT B: Input, Output, Attack 1–7, Release 1–7, Ratio 4/8/12/20.
-- OP TIT: Peak Reduction y Gain.
-- FAIR TIT: Input Gain, Threshold, Time Constant 1–6, Output, Mix.
-- Clean: todos los mandos libres (con Auto Release).
-Medidor horizontal IN / GR / OUT arriba y EQ del sidechain debajo.
-
-
-## Nota
-
-TIT COMP emula el comportamiento dinamico (curva, ataque, recuperacion) de cada compresor, medido con compresores de referencia. Por defecto es compresion digital limpia. El interruptor **Color** (apagado de serie) anade la saturacion y el timbre medidos de cada modo (FAIR, FET, FET B, OP y DXX); VCA, MU y DIG no llevan color.
-
-## Ajustes al arrancar
-El botón Color arranca en ON. Se puede cambiar para las instancias nuevas desde el menú `...` → "Color on at start", o editando `config.txt`
-(Windows: `%APPDATA%\TIT Audio\TIT COMP\`; macOS: `~/Library/Application Support/TIT Audio/TIT COMP/`):
+## Start-up settings
+The Color button starts **on**. To change it for new instances use the menu `...` → "Color on at start", or edit `config.txt`:
 
     color = off
+
+Location: Windows `%APPDATA%\TIT Audio\TIT COMP\`, macOS `~/Library/Application Support/TIT Audio/TIT COMP/`. Existing projects keep their saved state.
+
+## Install
+Download the latest build from the repository's *Actions* → artifact `TITCOMP-all`, copy `TIT COMP.vst3` to your VST3 folder (Windows: `C:\Program Files\Common Files\VST3`, macOS: `/Library/Audio/Plug-Ins/VST3`) and rescan in your DAW.
+Unsigned macOS builds: `xattr -cr "TIT COMP.vst3"` (or `.component`).
+
+## Build from source
+`cmake -B build && cmake --build build --config Release`. Needs CMake 3.22+ and a C++17 compiler; JUCE 8 is downloaded automatically. Core tests (no JUCE): `g++ -std=c++17 -O1 tests/core_test.cpp -o core_test && ./core_test`.
+
+## License
+Free software under the **GNU AGPLv3** (see `LICENSE`), built with JUCE 8. The source code is in this repository.
+All trademarks belong to their owners; TIT COMP is not affiliated with or endorsed by anyone, and the modes are described only by type (VCA, FET, optical, variable-mu...).
+
+---
+
+## Resumen en español
+TIT COMP es un compresor gratuito (VST3 y AU) con nueve modos: Clean, VCA, FET, FET B, OP (óptico), FAIR (variable-mu), MU, DXX y DIGITAL. Cada modo copia el comportamiento dinámico de un tipo de compresor, ajustado con mediciones. Incluye sidechain con EQ de 10 bandas, oversampling hasta 8x y un botón **Color** (arranca activado) para la saturación y el timbre medidos. Se puede elegir si Color arranca en on u off desde el menú `...` o en `config.txt`. Licencia AGPLv3.
