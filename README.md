@@ -38,3 +38,9 @@ Medidor horizontal IN / GR / OUT arriba y EQ del sidechain debajo.
 ## Nota
 
 TIT COMP emula el comportamiento dinamico (curva, ataque, recuperacion) de cada compresor, medido con compresores de referencia. Por defecto es compresion digital limpia. El interruptor **Color** (apagado de serie) anade la saturacion y el timbre medidos de cada modo (FAIR, FET, FET B, OP y DXX); VCA, MU y DIG no llevan color.
+
+## Ajustes al arrancar
+El botón Color arranca en ON. Se puede cambiar para las instancias nuevas desde el menú `...` → "Color on at start", o editando `config.txt`
+(Windows: `%APPDATA%\TIT Audio\TIT COMP\`; macOS: `~/Library/Application Support/TIT Audio/TIT COMP/`):
+
+    color = off
