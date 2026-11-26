@@ -4,6 +4,8 @@
 
 Each mode copies the *dynamic behaviour* (static curve, attack, release, memory) of a type of reference compressor. Every number was fitted to measurements made on real plugins, using test signals. Nothing is copied from anyone's code, graphics or sound files.
 
+![TIT COMP with live input, gain reduction and output meters](docs/tit-comp.jpg)
+
 ## Modes
 | Mode | Character |
 |---|---|
