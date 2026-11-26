@@ -427,7 +427,7 @@ inline Coefs makeCoefs (const Settings& s, double fs) noexcept
         }
         if (tc <= 4)
         {
-            static const double tau[] = { 0.10, 0.30, 0.87, 1.70 };
+            static const double tau[] = { 0.10, 0.30, 0.76, 1.70 };
             c.aR = std::exp (-1.0 / (tau[tc - 1] * fs));
         }
         else
